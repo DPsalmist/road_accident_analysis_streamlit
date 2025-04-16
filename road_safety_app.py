@@ -48,5 +48,6 @@ st.map(
 
 # Display top intersections in table
 st.write("🚦 Top 10 High-Risk Intersections:")
-st.dataframe(map_data[['rounded_location', 'accident_frequency']].head(10))
+#st.dataframe(map_data[['rounded_location', 'accident_frequency']].head(10))
+st.dataframe(intersection_accident_counts_v2[['rounded_location', 'accident_frequency']].head(10))
 st.markdown("### Map of Top 50 High-Risk Intersections by Frequency")
