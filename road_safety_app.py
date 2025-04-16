@@ -34,7 +34,7 @@ intersection_accident_counts_v2[['latitude', 'longitude']] = intersection_accide
 max_freq = intersection_accident_counts_v2['accident_frequency'].max()
 intersection_accident_counts_v2['marker_size'] = (intersection_accident_counts_v2['accident_frequency'] / max_freq) * 50
 
-# Create a DataFrame for the map with size information
+# Create a DataFrame for the map
 map_data = intersection_accident_counts_v2[['latitude', 'longitude', 'marker_size']].head(50)
 
 st.map(
@@ -43,4 +43,4 @@ st.map(
 )
 
 st.write("Top Potential High-Risk Intersections:")
-st.dataframe(intersection_accident_counts_v2.head())
+st.dataframe(intersection_accident_counts_v2[['rounded_location', 'accident_frequency']].head()) # Select specific columns
