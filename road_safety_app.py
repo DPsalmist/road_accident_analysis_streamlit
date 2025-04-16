@@ -43,8 +43,9 @@ map_data = pd.DataFrame({'latitude': map_lat, 'longitude': map_lon, 'size': map_
 
 st.map(
     map_data[['latitude', 'longitude']],
-    size=map_data['size']
+    #size=map_data['size']
 )
 
 st.write("Top Potential High-Risk Intersections:")
 st.dataframe(intersection_accident_counts_v2[['rounded_location', 'accident_frequency']].head())
+st.markdown("### Map of Top 50 High-Risk Intersections by Frequency")
