@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 
 # Define the URL for the data file in the GitHub repository
-DATA_URL = "datasets/dft-road-casualty-statistics-collision-2023.csv" 
+DATA_URL = "datasets/dft-road-casualty-statistics-collision-2023.csv"
 
 @st.cache_data
 def load_data(url):
@@ -10,9 +10,6 @@ def load_data(url):
     return df
 
 df_collision = load_data(DATA_URL)
-
-print("Loaded Collision Data:")
-print(df_collision.head())
 
 st.title("High-Risk Road Intersections")
 st.subheader("Based on Accident Frequency (2023 Data)")
@@ -30,13 +27,21 @@ df_junction_accidents_cleaned['rounded_location'] = df_junction_accidents_cleane
 # Group by the rounded location and count the number of accidents
 intersection_accident_counts_v2 = df_junction_accidents_cleaned.groupby('rounded_location').size().sort_values(ascending=False).reset_index(name='accident_frequency')
 
-# Split the rounded_location back into latitude and longitude and rename for st.map
+# Split the rounded_location back into latitude and longitude
 intersection_accident_counts_v2[['latitude', 'longitude']] = intersection_accident_counts_v2['rounded_location'].str.split(', ', expand=True).astype(float)
 
-# Create a DataFrame for the map
-map_data = intersection_accident_counts_v2[['latitude', 'longitude', 'accident_frequency']].head(50) # Limiting to top 50 for initial view
+# Scale the accident frequency for marker size
+max_freq = intersection_accident_counts_v2['accident_frequency'].max()
+intersection_accident_counts_v2['marker_size'] = (intersection_accident_counts_v2['accident_frequency'] / max_freq) * 50
 
-st.map(map_data[['latitude', 'longitude']])
+# Create a DataFrame for the map with size and tooltip information
+map_data = intersection_accident_counts_v2[['latitude', 'longitude', 'marker_size', 'rounded_location', 'accident_frequency']].head(50)
+
+st.map(
+    map_data[['latitude', 'longitude']],
+    size=map_data['marker_size'],
+    tooltip=["rounded_location", "accident_frequency"]
+)
 
 st.write("Top Potential High-Risk Intersections:")
-st.dataframe(map_data) # Displaying the top intersections with frequency
+st.dataframe(intersection_accident_counts_v2.head())
