@@ -202,21 +202,6 @@ st.download_button(
     mime="text/csv"
 )
 
-# Optional: Download as image if dataframe-image is available
-try:
-    import dataframe_image as dfi
-    import tempfile
-    temp_img_path = tempfile.NamedTemporaryFile(suffix=".png", delete=False).name
-    dfi.export(display_df, temp_img_path)
-    with open(temp_img_path, "rb") as img_file:
-        st.download_button(
-            label="Download as Image (PDF Alternative)",
-            data=img_file,
-            file_name="top_10_intersections.png",
-            mime="image/png"
-        )
-except ImportError:
-    st.info("To enable image export, install `dataframe-image`: `pip install dataframe-image`")
 
 # -------------------------
 # ✅ End of App
