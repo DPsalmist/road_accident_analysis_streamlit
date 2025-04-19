@@ -216,10 +216,10 @@ with tab5:
     st.markdown("### ℹ️ About This Dashboard")
     # ... (rest of the About tab)
 
+
 with tab6:
     st.markdown("### 🧠 Accident Severity Prediction")
     st.markdown("This section will allow you to input accident characteristics to predict the severity.")
-
 
     # --- Select features and target variable ---
     ml_df = df_merged[[
