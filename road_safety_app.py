@@ -141,7 +141,7 @@ top_n = st.sidebar.slider("Number of Top Intersections to Display", 1, 100, 10)
 #  Tabbed Interface (Add a new tab for ML)
 # -------------------------
 tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
-     "About",
+    "About",
     "📍 Map",
     "📊 Data & Stats",
     "Insights",
