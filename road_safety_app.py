@@ -319,7 +319,8 @@ with tab6:
     # model.fit(X_train, y_train)
 
     # --- Train a Random Forest Classifier Model ---
-    model = RandomForestClassifier(n_estimators=100, max_depth=10, random_state=42, class_weight='balanced')
+    # model = RandomForestClassifier(n_estimators=100, max_depth=10, random_state=42, class_weight='balanced')
+    model = RandomForestClassifier(n_estimators=100, min_samples_split=10, random_state=42, class_weight='balanced')
     model.fit(X_train, y_train)
 
     # --- Make Predictions on the Test Set ---
