@@ -230,7 +230,6 @@ with tab5:
         st.warning("No top intersections to download based on the current filters.")
 
 
-
 with tab6:
     st.markdown("### 🧠 Accident Severity Prediction")
     st.markdown("This section will allow you to input accident characteristics to predict the severity.")
@@ -249,6 +248,10 @@ with tab6:
 
     # --- Handle Missing Values ---
     ml_df_cleaned = ml_df.dropna()
+    st.subheader("Data After Handling Missing Values")
+    st.write(f"Number of rows before handling missing values: {len(ml_df)}")
+    st.write(f"Number of rows after handling missing values: {len(ml_df_cleaned)}")
+    st.dataframe(ml_df_cleaned.head())
 
     # --- Encode Categorical Features using One-Hot Encoding ---
     ml_df_encoded = pd.get_dummies(ml_df_cleaned, columns=[
@@ -258,6 +261,10 @@ with tab6:
         'light_conditions',
         'weather_conditions'
     ])
+    st.subheader("Data After One-Hot Encoding")
+    st.write(f"Number of columns before encoding: {len(ml_df_cleaned.columns)}")
+    st.write(f"Number of columns after encoding: {len(ml_df_encoded.columns)}")
+    st.dataframe(ml_df_encoded.head())
 
     # --- Prepare Features (X) and Target (y) ---
     X = ml_df_encoded.drop('accident_severity', axis=1)
@@ -266,37 +273,16 @@ with tab6:
     # --- Split Data into Training and Testing Sets ---
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-    # --- Train a Random Forest Classifier Model ---
-    # model = RandomForestClassifier(n_estimators=100, random_state=42, class_weight='balanced')
-    # model.fit(X_train, y_train)
-
     # --- Train an XGBoost Classifier Model ---
-    model = XGBClassifier(random_state=42, use_label_encoder=False, 
-                        eval_metric='mlogloss', scale_pos_weight=[1, 
-                        (y_train == 1).sum() / (y_train == 2).sum(), 
-                        (y_train == 1).sum() / (y_train == 3).sum()]) # Experiment with scale_pos_weight
+    model = XGBClassifier(random_state=42, use_label_encoder=False,
+                            eval_metric='mlogloss', scale_pos_weight=[1,
+                                (y_train == 1).sum() / (y_train == 2).sum(),
+                                (y_train == 1).sum() / (y_train == 3).sum()]) # Experiment with scale_pos_weight
     model.fit(X_train, y_train)
 
-    # --- Train a Random Forest Classifier Model ---
-    # model = RandomForestClassifier(n_estimators=100, max_depth=10, random_state=42, class_weight='balanced')
-    # model = RandomForestClassifier(n_estimators=100, min_samples_split=10, random_state=42, class_weight='balanced')
-    # model.fit(X_train, y_train)
-
     # --- Make Predictions on the Test Set ---
-    y_pred = model.predict(X_test)    
+    y_pred = model.predict(X_test)
 
-
-    # Handle Missing Data
-    st.subheader("Data after Handling Missing Values")
-    st.write(f"Number of rows before handling missing values: {len(ml_df)}")
-    st.write(f"Number of rows after handling missing values: {len(ml_df_cleaned)}")
-    st.dataframe(ml_df_cleaned.head())
-
-    # One-Hot Encoding
-    st.subheader("Data after One-Hot Encoding")
-    st.write(f"Number of columns before encoding: {len(ml_df_cleaned.columns)}")
-    st.write(f"Number of columns after encoding: {len(ml_df_encoded.columns)}")
-    st.dataframe(ml_df_encoded.head())
 
     # --- Evaluate the Model ---
     st.subheader("Model Evaluation - XGBoost Model")
