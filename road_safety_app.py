@@ -267,24 +267,18 @@ with tab6:
     X = ml_df_encoded.drop('accident_severity', axis=1)
     y = ml_df_encoded['accident_severity'].astype(int)
 
-    # --- Print unique values in y_train after splitting ---
+    # --- Split Data into Training and Testing Sets ---
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
-    st.write(f"Unique values in y_train: {pd.Series(y_train).unique()}")
 
-    # --- Train an XGBoost Classifier Model ---
-    model = XGBClassifier(random_state=42, use_label_encoder=False,
-                            eval_metric='mlogloss', num_class=3, # Explicitly set num_class
-                            scale_pos_weight=[1,
-                                (y_train == 1).sum() / (y_train == 2).sum(),
-                                (y_train == 1).sum() / (y_train == 3).sum()]) # Experiment with scale_pos_weight
+    # --- Train a Random Forest Classifier Model ---
+    model = RandomForestClassifier(n_estimators=100, random_state=42, class_weight='balanced')
     model.fit(X_train, y_train)
 
     # --- Make Predictions on the Test Set ---
     y_pred = model.predict(X_test)
 
-
     # --- Evaluate the Model ---
-    st.subheader("Model Evaluation - XGBoost Model")
+    st.subheader("Model Evaluation - Random Forest Model")
     accuracy = accuracy_score(y_test, y_pred)
     st.write(f"Accuracy: {accuracy:.2f}")
     st.text("Classification Report:")
