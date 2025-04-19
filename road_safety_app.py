@@ -265,10 +265,13 @@ with tab6:
 
     # --- Prepare Features (X) and Target (y) ---
     X = ml_df_encoded.drop('accident_severity', axis=1)
-    y = ml_df_encoded['accident_severity']
+    y = ml_df_encoded['accident_severity'].astype(int) # Force conversion to int
+
+    # --- Print data type of y before splitting ---
+    st.write(f"Data type of y before splitting: {y.dtype}")
 
     # --- Split Data into Training and Testing Sets ---
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y) # Added stratify
 
     # --- Train an XGBoost Classifier Model ---
     model = XGBClassifier(random_state=42, use_label_encoder=False,
