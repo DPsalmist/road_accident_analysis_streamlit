@@ -239,26 +239,31 @@ with tab6:
         'accident_severity'
     ]].copy()
 
-    st.subheader("Selected Features and Target Variable")
-    st.dataframe(ml_df.head())
-
-    st.subheader("Feature Exploration")
-    for col in ml_df.columns:
-        st.markdown(f"**Column: {col}**")
-        if ml_df[col].dtype == 'object':
-            st.write("Value Counts:")
-            st.write(ml_df[col].value_counts())
-        else:
-            st.write("Descriptive Statistics:")
-            st.write(ml_df[col].describe())
-        st.markdown("---")
-
     # --- Handle Missing Values ---
     ml_df_cleaned = ml_df.dropna()
     st.subheader("Data after Handling Missing Values")
     st.write(f"Number of rows before handling missing values: {len(ml_df)}")
     st.write(f"Number of rows after handling missing values: {len(ml_df_cleaned)}")
     st.dataframe(ml_df_cleaned.head())
+
+    # --- Encode Categorical Features using One-Hot Encoding ---
+    ml_df_encoded = pd.get_dummies(ml_df_cleaned, columns=[
+        'vehicle_type',
+        'road_surface_conditions',
+        'junction_detail',
+        'light_conditions',
+        'weather_conditions'
+    ])
+
+    st.subheader("Data after Handling Missing Values")
+    st.write(f"Number of rows before handling missing values: {len(ml_df)}")
+    st.write(f"Number of rows after handling missing values: {len(ml_df_cleaned)}")
+    st.dataframe(ml_df_cleaned.head())
+
+    st.subheader("Data after One-Hot Encoding")
+    st.write(f"Number of columns before encoding: {len(ml_df_cleaned.columns)}")
+    st.write(f"Number of columns after encoding: {len(ml_df_encoded.columns)}")
+    st.dataframe(ml_df_encoded.head())
 
 
 # -------------------------
