@@ -5,6 +5,7 @@ import plotly.express as px
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
+from xgboost import XGBClassifier
 from sklearn.metrics import accuracy_score, classification_report
 
 # -------------------------
@@ -230,55 +231,6 @@ with tab5:
 
 
 
-# with tab6:
-#     st.markdown("### 🧠 Accident Severity Prediction")
-#     st.markdown("This section will allow you to input accident characteristics to predict the severity.")
-
-#     # --- Select features and target variable ---
-#     ml_df = df_merged[[
-#         'vehicle_type',
-#         'age_of_driver',
-#         'road_surface_conditions',
-#         'junction_detail',
-#         'light_conditions',
-#         'weather_conditions',
-#         'speed_limit',
-#         'accident_severity'
-#     ]].copy()
-
-#     # --- Handle Missing Values ---
-#     ml_df_cleaned = ml_df.dropna()
-
-#     # --- Encode Categorical Features using One-Hot Encoding ---
-#     ml_df_encoded = pd.get_dummies(ml_df_cleaned, columns=[
-#         'vehicle_type',
-#         'road_surface_conditions',
-#         'junction_detail',
-#         'light_conditions',
-#         'weather_conditions'
-#     ])
-
-#     # --- Prepare Features (X) and Target (y) ---
-#     X = ml_df_encoded.drop('accident_severity', axis=1)
-#     y = ml_df_encoded['accident_severity']
-
-#     # --- Split Data into Training and Testing Sets ---
-#     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
-#     # --- Train a Logistic Regression Model ---
-#     model = LogisticRegression(solver='liblinear', multi_class='auto', random_state=42, max_iter=1000)
-#     # --- Train a Logistic Regression Model ---
-#     model = LogisticRegression(solver='liblinear', multi_class='auto', random_state=42, max_iter=1000, class_weight='balanced')
- 
-#     model.fit(X_train, y_train)
-
-#     # --- Make Predictions on the Test Set ---
-#     y_pred = model.predict(X_test)
-
-from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score, classification_report
-
 with tab6:
     st.markdown("### 🧠 Accident Severity Prediction")
     st.markdown("This section will allow you to input accident characteristics to predict the severity.")
@@ -315,7 +267,11 @@ with tab6:
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
     # --- Train a Random Forest Classifier Model ---
-    model = RandomForestClassifier(n_estimators=100, random_state=42, class_weight='balanced')
+    # model = RandomForestClassifier(n_estimators=100, random_state=42, class_weight='balanced')
+    # model.fit(X_train, y_train)
+
+    # --- Train an XGBoost Classifier Model ---
+    model = XGBClassifier(random_state=42, use_label_encoder=False, eval_metric='mlogloss', scale_pos_weight=[1, (y_train == 1).sum() / (y_train == 2).sum(), (y_train == 1).sum() / (y_train == 3).sum()]) # Experiment with scale_pos_weight
     model.fit(X_train, y_train)
 
     # --- Train a Random Forest Classifier Model ---
@@ -340,7 +296,7 @@ with tab6:
     st.dataframe(ml_df_encoded.head())
 
     # --- Evaluate the Model ---
-    st.subheader("Model Evaluation - Random Forest")
+    st.subheader("Model Evaluation - XGBoost Model")
     accuracy = accuracy_score(y_test, y_pred)
     st.write(f"Accuracy: {accuracy:.2f}")
     st.text("Classification Report:")
