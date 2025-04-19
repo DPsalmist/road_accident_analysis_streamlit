@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import plotly.express as px
 
 # -------------------------
 # 🚚 1. Load the Data
@@ -19,12 +20,18 @@ df_collision = load_data(DATA_URL)
 st.title("High-Risk Road Intersections in the UK")
 st.subheader("Based on 2023 Road Collision Data")
 
+st.markdown("""
+**🔍 Project Overview:**  
+This interactive dashboard helps identify the **top high-risk road intersections** in the UK, based on reported accidents from the 2023 road casualty data.  
+You can filter accidents by **region, junction type, severity**, and **time**.  
+It’s designed to support non-technical users like city planners, safety teams, or policymakers in visualizing and prioritizing intervention zones.
+""")
+
 st.markdown("Use the filters on the left sidebar to refine results and explore data more interactively.")
 
 # -------------------------
 # 🎛️ 2. Sidebar Filters
 # -------------------------
-
 st.sidebar.header("🔎 Filters")
 
 # Junction Type Filter
@@ -54,7 +61,7 @@ available_regions = sorted(df_collision['local_authority_ons_district'].dropna()
 selected_regions = st.sidebar.multiselect(
     "Select Regions (ONS Districts)",
     options=available_regions,
-    default=available_regions[:5]  # Preselect some for usability
+    default=available_regions[:5]
 )
 
 # Accident Severity Filter
@@ -136,7 +143,54 @@ display_df.columns = ['Location (Lat, Lon)', 'Latitude', 'Longitude', 'Accident 
 st.dataframe(display_df)
 
 # -------------------------
-# 💾 7. Export Options
+# 📊 7. Bar Chart
+# -------------------------
+st.markdown("### 📊 Accident Frequency by Intersection (Bar Chart)")
+
+fig_bar = px.bar(
+    display_df,
+    x='Location (Lat, Lon)',
+    y='Accident Count',
+    color='Accident Count',
+    color_continuous_scale='Reds',
+    title='Top 10 Intersections with Highest Accident Frequency',
+    labels={'Accident Count': 'Accidents'},
+    height=400
+)
+fig_bar.update_layout(xaxis_tickangle=-45)
+st.plotly_chart(fig_bar, use_container_width=True)
+
+# -------------------------
+# 🥧 8. Pie Chart: Severity Breakdown
+# -------------------------
+st.markdown("### 🥧 Accident Severity Breakdown")
+
+severity_distribution = df_filtered['accident_severity'].map(severity_map).value_counts().reset_index()
+severity_distribution.columns = ['Severity', 'Count']
+
+fig_pie = px.pie(
+    severity_distribution,
+    names='Severity',
+    values='Count',
+    title='Accident Severity Distribution in Filtered Data',
+    color_discrete_sequence=px.colors.sequential.RdBu
+)
+st.plotly_chart(fig_pie, use_container_width=True)
+
+# -------------------------
+# 🧠 9. Key Observations
+# -------------------------
+st.markdown("### 🧠 Insights & Observations")
+
+most_accident_prone = display_df.iloc[0]
+st.markdown(f"""
+- 🚨 The intersection at **{most_accident_prone['Location (Lat, Lon)']}** recorded the **highest number of accidents**: **{most_accident_prone['Accident Count']}**.
+- 📌 The top 10 intersections collectively account for **{display_df['Accident Count'].sum()}** reported accidents in the selected filters.
+- 🧾 Filter applied: **{len(df_filtered)}** accidents matched your criteria.
+""")
+
+# -------------------------
+# 💾 10. Export Options
 # -------------------------
 st.markdown("### 📤 Download Table")
 
