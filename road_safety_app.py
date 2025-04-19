@@ -219,7 +219,33 @@ with tab5:
 with tab6:
     st.markdown("### 🧠 Accident Severity Prediction")
     st.markdown("This section will allow you to input accident characteristics to predict the severity.")
-    st.markdown("We will build the prediction model and then add input fields here.")
+
+
+    # --- Select features and target variable ---
+    ml_df = df_merged[[
+        'vehicle_type',
+        'age_of_driver',
+        'road_surface_conditions',
+        'junction_detail',
+        'light_conditions',
+        'weather_conditions',
+        'speed_limit',
+        'accident_severity'
+    ]].copy()
+
+    st.subheader("Selected Features and Target Variable")
+    st.dataframe(ml_df.head())
+
+    st.subheader("Feature Exploration")
+    for col in ml_df.columns:
+        st.markdown(f"**Column: {col}**")
+        if ml_df[col].dtype == 'object':
+            st.write("Value Counts:")
+            st.write(ml_df[col].value_counts())
+        else:
+            st.write("Descriptive Statistics:")
+            st.write(ml_df[col].describe())
+        st.markdown("---")
 
 # -------------------------
 # ✅ End of App
