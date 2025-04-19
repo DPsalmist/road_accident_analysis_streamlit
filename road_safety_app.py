@@ -271,7 +271,10 @@ with tab6:
     # model.fit(X_train, y_train)
 
     # --- Train an XGBoost Classifier Model ---
-    model = XGBClassifier(random_state=42, use_label_encoder=False, eval_metric='mlogloss', scale_pos_weight=[1, (y_train == 1).sum() / (y_train == 2).sum(), (y_train == 1).sum() / (y_train == 3).sum()]) # Experiment with scale_pos_weight
+    model = XGBClassifier(random_state=42, use_label_encoder=False, 
+                        eval_metric='mlogloss', scale_pos_weight=[1, 
+                        (y_train == 1).sum() / (y_train == 2).sum(), 
+                        (y_train == 1).sum() / (y_train == 3).sum()]) # Experiment with scale_pos_weight
     model.fit(X_train, y_train)
 
     # --- Train a Random Forest Classifier Model ---
@@ -280,7 +283,7 @@ with tab6:
     # model.fit(X_train, y_train)
 
     # --- Make Predictions on the Test Set ---
-    y_pred = model.predict(X_test)
+    y_pred = model.predict(X_test)    
 
 
     # Handle Missing Data
