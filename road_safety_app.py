@@ -24,10 +24,6 @@ df_vehicles = load_data(DATA_URL_VEHICLES)
 df_merged = pd.merge(df_collision, df_casualties, on='accident_index', how='inner')
 df_merged = pd.merge(df_merged, df_vehicles, on='accident_index', how='inner')
 
-# --- Temporary: Print column names of df_merged ---
-st.write("Columns of df_merged:", df_merged.columns.tolist())
-# --- End of temporary section ---
-
 # -------------------------
 # 🧭 App Title (Initial Part - Rest of UI will be in tabs)
 # -------------------------
@@ -104,7 +100,7 @@ selected_months = st.sidebar.multiselect(
 df_filtered = df_merged[
     df_merged['junction_detail'].isin(selected_junctions) &
     df_merged['local_authority_ons_district'].isin(selected_regions) &
-    df_merged['accident_severity'].isin(selected_severities) & # Use 'accident_severity' from df_collision
+    df_merged['accident_severity'].isin(selected_severities) & # Use 'accident_severity'
     df_merged['month'].isin(selected_months)
 ].copy()
 
@@ -178,7 +174,7 @@ with tab2:
 
     # 🥧 Pie Chart: Severity Breakdown
     st.markdown("### 🥧 Accident Severity Breakdown")
-    severity_distribution = df_filtered['accident_severity'].map(severity_map).value_counts().reset_index() # Use 'accident_severity' from df_collision
+    severity_distribution = df_filtered['accident_severity'].map(severity_map).value_counts().reset_index() # Use 'accident_severity'
     severity_distribution.columns = ['Severity', 'Count']
     fig_pie = px.pie(
         severity_distribution,
