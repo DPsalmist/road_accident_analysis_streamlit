@@ -1,53 +1,171 @@
 import streamlit as st
 import pandas as pd
 
-# Define the URL for the data file in the GitHub repository
+# -------------------------
+# 🚚 1. Load the Data
+# -------------------------
 DATA_URL = "datasets/dft-road-casualty-statistics-collision-2023.csv"
 
 @st.cache_data
 def load_data(url):
-    df = pd.read_csv(url)
+    df = pd.read_csv(url, low_memory=False)
     return df
 
 df_collision = load_data(DATA_URL)
 
-st.title("High-Risk Road Intersections")
-st.subheader("Based on Accident Frequency (2023 Data)")
+# -------------------------
+# 🧭 App Title
+# -------------------------
+st.title("High-Risk Road Intersections in the UK")
+st.subheader("Based on 2023 Road Collision Data")
 
-# Filter for junction accidents
-junction_types_to_include = [3, 6, 1, 8, 7, 2, 9]
-df_junction_accidents = df_collision[df_collision['junction_detail'].isin(junction_types_to_include)].copy()
+st.markdown("Use the filters on the left sidebar to refine results and explore data more interactively.")
 
-# Remove rows with missing latitude or longitude
-df_junction_accidents_cleaned = df_junction_accidents.dropna(subset=['latitude', 'longitude']).copy()
+# -------------------------
+# 🎛️ 2. Sidebar Filters
+# -------------------------
 
-# Round latitude and longitude to 4 decimal places
-df_junction_accidents_cleaned['rounded_location'] = df_junction_accidents_cleaned['latitude'].round(4).astype(str) + ', ' + df_junction_accidents_cleaned['longitude'].round(4).astype(str)
+st.sidebar.header("🔎 Filters")
 
-# Group by the rounded location and count the number of accidents
-intersection_accident_counts_v2 = df_junction_accidents_cleaned.groupby('rounded_location').size().sort_values(ascending=False).reset_index(name='accident_frequency')
-
-# Split the rounded_location back into latitude and longitude
-intersection_accident_counts_v2[['latitude', 'longitude']] = intersection_accident_counts_v2['rounded_location'].str.split(', ', expand=True).astype(float)
-
-# Scale the accident frequency for marker size
-max_freq = intersection_accident_counts_v2['accident_frequency'].max()
-intersection_accident_counts_v2['marker_size'] = (intersection_accident_counts_v2['accident_frequency'] / max_freq).tolist() # Convert to list
-
-# Create lists for latitude and longitude
-map_lat = intersection_accident_counts_v2['latitude'].head(50).tolist()
-map_lon = intersection_accident_counts_v2['longitude'].head(50).tolist()
-map_size = intersection_accident_counts_v2['marker_size'][:50]
-
-map_data = pd.DataFrame({'latitude': map_lat, 'longitude': map_lon, 'size': map_size})
-
-st.map(
-    map_data[['latitude', 'longitude']],
-    #size=map_data['size']
+# Junction Type Filter
+st.sidebar.markdown("### Junction Type")
+junction_type_labels = {
+    0: "Not at junction",
+    1: "Roundabout",
+    2: "Mini-roundabout",
+    3: "T or staggered junction",
+    5: "Slip road",
+    6: "Crossroads",
+    7: "More than 4 arms (not roundabout)",
+    8: "Private drive or entrance",
+    9: "Other junction"
+}
+available_junctions = sorted(df_collision['junction_detail'].dropna().unique())
+selected_junctions = st.sidebar.multiselect(
+    "Select Junction Types",
+    options=available_junctions,
+    default=[1, 2, 3, 6, 7, 8, 9],
+    format_func=lambda x: junction_type_labels.get(x, str(x))
 )
 
-# Display top intersections in table
-st.write("🚦 Top 10 High-Risk Intersections:")
-#st.dataframe(map_data[['rounded_location', 'accident_frequency']].head(10))
-st.dataframe(intersection_accident_counts_v2[['rounded_location', 'accident_frequency']].head(10))
-st.markdown("### Map of Top 50 High-Risk Intersections by Frequency")
+# Region Filter
+st.sidebar.markdown("### Region")
+available_regions = sorted(df_collision['local_authority_ons_district'].dropna().unique())
+selected_regions = st.sidebar.multiselect(
+    "Select Regions (ONS Districts)",
+    options=available_regions,
+    default=available_regions[:5]  # Preselect some for usability
+)
+
+# Accident Severity Filter
+st.sidebar.markdown("### Severity")
+severity_map = {1: "Fatal", 2: "Serious", 3: "Slight"}
+available_severities = df_collision['accident_severity'].dropna().unique()
+selected_severities = st.sidebar.multiselect(
+    "Select Severity Level",
+    options=available_severities,
+    default=available_severities,
+    format_func=lambda x: severity_map.get(x, str(x))
+)
+
+# Time Filter (Month)
+st.sidebar.markdown("### Month")
+df_collision['month'] = pd.to_datetime(df_collision['date'], errors='coerce').dt.month
+months_map = {
+    1: "January", 2: "February", 3: "March", 4: "April",
+    5: "May", 6: "June", 7: "July", 8: "August",
+    9: "September", 10: "October", 11: "November", 12: "December"
+}
+available_months = sorted(df_collision['month'].dropna().unique())
+selected_months = st.sidebar.multiselect(
+    "Select Month(s)",
+    options=available_months,
+    default=available_months,
+    format_func=lambda x: months_map.get(x, f"Month {x}")
+)
+
+# -------------------------
+# 🔍 3. Apply Filters
+# -------------------------
+df_filtered = df_collision[
+    df_collision['junction_detail'].isin(selected_junctions) &
+    df_collision['local_authority_ons_district'].isin(selected_regions) &
+    df_collision['accident_severity'].isin(selected_severities) &
+    df_collision['month'].isin(selected_months)
+].copy()
+
+df_filtered = df_filtered.dropna(subset=['latitude', 'longitude'])
+
+df_filtered['rounded_location'] = (
+    df_filtered['latitude'].round(4).astype(str) + ', ' +
+    df_filtered['longitude'].round(4).astype(str)
+)
+
+# -------------------------
+# 📊 4. Aggregate Accident Data
+# -------------------------
+intersection_accident_counts = (
+    df_filtered.groupby('rounded_location')
+    .size()
+    .sort_values(ascending=False)
+    .reset_index(name='accident_frequency')
+)
+
+intersection_accident_counts[['latitude', 'longitude']] = (
+    intersection_accident_counts['rounded_location']
+    .str.split(', ', expand=True).astype(float)
+)
+
+max_freq = intersection_accident_counts['accident_frequency'].max()
+intersection_accident_counts['marker_size'] = intersection_accident_counts['accident_frequency'] / max_freq
+
+# -------------------------
+# 🗺️ 5. Map Display (Top 50)
+# -------------------------
+st.markdown("### 🗺️ Map of Top 50 High-Risk Intersections")
+map_data = intersection_accident_counts[['latitude', 'longitude']].head(50)
+st.map(map_data)
+
+# -------------------------
+# 📋 6. Data Table Display
+# -------------------------
+st.markdown("### 🚦 Top 10 Intersections with Highest Accident Frequency")
+
+display_df = intersection_accident_counts[['rounded_location', 'latitude', 'longitude', 'accident_frequency']].head(10)
+display_df.columns = ['Location (Lat, Lon)', 'Latitude', 'Longitude', 'Accident Count']
+st.dataframe(display_df)
+
+# -------------------------
+# 💾 7. Export Options
+# -------------------------
+st.markdown("### 📤 Download Table")
+
+csv_download = display_df.to_csv(index=False).encode('utf-8')
+st.download_button(
+    label="Download as CSV",
+    data=csv_download,
+    file_name="top_10_intersections.csv",
+    mime="text/csv"
+)
+
+# Optional: Download as image if dataframe-image is available
+try:
+    import dataframe_image as dfi
+    import tempfile
+    temp_img_path = tempfile.NamedTemporaryFile(suffix=".png", delete=False).name
+    dfi.export(display_df, temp_img_path)
+    with open(temp_img_path, "rb") as img_file:
+        st.download_button(
+            label="Download as Image (PDF Alternative)",
+            data=img_file,
+            file_name="top_10_intersections.png",
+            mime="image/png"
+        )
+except ImportError:
+    st.info("To enable image export, install `dataframe-image`: `pip install dataframe-image`")
+
+# -------------------------
+# ✅ End of App
+# -------------------------
+st.markdown("---")
+st.caption("Built with ❤️ using Streamlit and UK Road Safety Data (DfT, 2023)")
