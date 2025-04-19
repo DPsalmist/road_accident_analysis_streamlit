@@ -4,4 +4,5 @@ plotly
 dataframe-image
 folium
 streamlit-folium
+scikit-learn
 
