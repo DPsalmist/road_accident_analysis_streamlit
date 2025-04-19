@@ -4,6 +4,7 @@ import plotly.express as px
 
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, classification_report
 
 # -------------------------
@@ -229,6 +230,55 @@ with tab5:
 
 
 
+# with tab6:
+#     st.markdown("### 🧠 Accident Severity Prediction")
+#     st.markdown("This section will allow you to input accident characteristics to predict the severity.")
+
+#     # --- Select features and target variable ---
+#     ml_df = df_merged[[
+#         'vehicle_type',
+#         'age_of_driver',
+#         'road_surface_conditions',
+#         'junction_detail',
+#         'light_conditions',
+#         'weather_conditions',
+#         'speed_limit',
+#         'accident_severity'
+#     ]].copy()
+
+#     # --- Handle Missing Values ---
+#     ml_df_cleaned = ml_df.dropna()
+
+#     # --- Encode Categorical Features using One-Hot Encoding ---
+#     ml_df_encoded = pd.get_dummies(ml_df_cleaned, columns=[
+#         'vehicle_type',
+#         'road_surface_conditions',
+#         'junction_detail',
+#         'light_conditions',
+#         'weather_conditions'
+#     ])
+
+#     # --- Prepare Features (X) and Target (y) ---
+#     X = ml_df_encoded.drop('accident_severity', axis=1)
+#     y = ml_df_encoded['accident_severity']
+
+#     # --- Split Data into Training and Testing Sets ---
+#     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+#     # --- Train a Logistic Regression Model ---
+#     model = LogisticRegression(solver='liblinear', multi_class='auto', random_state=42, max_iter=1000)
+#     # --- Train a Logistic Regression Model ---
+#     model = LogisticRegression(solver='liblinear', multi_class='auto', random_state=42, max_iter=1000, class_weight='balanced')
+ 
+#     model.fit(X_train, y_train)
+
+#     # --- Make Predictions on the Test Set ---
+#     y_pred = model.predict(X_test)
+
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score, classification_report
+
 with tab6:
     st.markdown("### 🧠 Accident Severity Prediction")
     st.markdown("This section will allow you to input accident characteristics to predict the severity.")
@@ -264,32 +314,32 @@ with tab6:
     # --- Split Data into Training and Testing Sets ---
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-    # --- Train a Logistic Regression Model ---
-    model = LogisticRegression(solver='liblinear', multi_class='auto', random_state=42, max_iter=1000)
-    # --- Train a Logistic Regression Model ---
-    model = LogisticRegression(solver='liblinear', multi_class='auto', random_state=42, max_iter=1000, class_weight='balanced')
- 
+    # --- Train a Random Forest Classifier Model ---
+    model = RandomForestClassifier(n_estimators=100, random_state=42, class_weight='balanced')
     model.fit(X_train, y_train)
 
     # --- Make Predictions on the Test Set ---
     y_pred = model.predict(X_test)
 
-    # --- Evaluate the Model ---
-    st.subheader("Model Evaluation")
-    accuracy = accuracy_score(y_test, y_pred)
-    st.write(f"Accuracy: {accuracy:.2f}")
-    st.text("Classification Report:")
-    st.text(classification_report(y_test, y_pred))
 
+    # Handle Missing Data
     st.subheader("Data after Handling Missing Values")
     st.write(f"Number of rows before handling missing values: {len(ml_df)}")
     st.write(f"Number of rows after handling missing values: {len(ml_df_cleaned)}")
     st.dataframe(ml_df_cleaned.head())
 
+    # One-Hot Encoding
     st.subheader("Data after One-Hot Encoding")
     st.write(f"Number of columns before encoding: {len(ml_df_cleaned.columns)}")
     st.write(f"Number of columns after encoding: {len(ml_df_encoded.columns)}")
     st.dataframe(ml_df_encoded.head())
+
+    # --- Evaluate the Model ---
+    st.subheader("Model Evaluation - Random Forest")
+    accuracy = accuracy_score(y_test, y_pred)
+    st.write(f"Accuracy: {accuracy:.2f}")
+    st.text("Classification Report:")
+    st.text(classification_report(y_test, y_pred))
 
     st.markdown("---")
     st.markdown("Next, we will integrate this model to take user inputs for prediction.")
