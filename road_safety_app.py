@@ -100,7 +100,7 @@ selected_months = st.sidebar.multiselect(
 df_filtered = df_merged[
     df_merged['junction_detail'].isin(selected_junctions) &
     df_merged['local_authority_ons_district'].isin(selected_regions) &
-    df_merged['accident_severity_x'].isin(selected_severities) & # Use '_x' for collisions severity
+    df_merged['accident_severity'].isin(selected_severities) & # Use 'accident_severity' from df_collision
     df_merged['month'].isin(selected_months)
 ].copy()
 
@@ -174,7 +174,7 @@ with tab2:
 
     # 🥧 Pie Chart: Severity Breakdown
     st.markdown("### 🥧 Accident Severity Breakdown")
-    severity_distribution = df_filtered['accident_severity_x'].map(severity_map).value_counts().reset_index() # Use '_x' for collisions severity
+    severity_distribution = df_filtered['accident_severity'].map(severity_map).value_counts().reset_index() # Use 'accident_severity' from df_collision
     severity_distribution.columns = ['Severity', 'Count']
     fig_pie = px.pie(
         severity_distribution,
