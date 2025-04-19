@@ -3,4 +3,5 @@ pandas
 plotly
 dataframe-image
 folium
+streamlit-folium
 
