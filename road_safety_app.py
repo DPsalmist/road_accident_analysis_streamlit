@@ -265,17 +265,16 @@ with tab6:
 
     # --- Prepare Features (X) and Target (y) ---
     X = ml_df_encoded.drop('accident_severity', axis=1)
-    y = ml_df_encoded['accident_severity'].astype(int) # Force conversion to int
+    y = ml_df_encoded['accident_severity'].astype(int)
 
-    # --- Print data type of y before splitting ---
-    st.write(f"Data type of y before splitting: {y.dtype}")
-
-    # --- Split Data into Training and Testing Sets ---
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y) # Added stratify
+    # --- Print unique values in y_train after splitting ---
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
+    st.write(f"Unique values in y_train: {pd.Series(y_train).unique()}")
 
     # --- Train an XGBoost Classifier Model ---
     model = XGBClassifier(random_state=42, use_label_encoder=False,
-                            eval_metric='mlogloss', scale_pos_weight=[1,
+                            eval_metric='mlogloss', num_class=3, # Explicitly set num_class
+                            scale_pos_weight=[1,
                                 (y_train == 1).sum() / (y_train == 2).sum(),
                                 (y_train == 1).sum() / (y_train == 3).sum()]) # Experiment with scale_pos_weight
     model.fit(X_train, y_train)
