@@ -17,7 +17,7 @@ df_collision = load_data(DATA_URL)
 # -------------------------
 # 🧭 App Title
 # -------------------------
-st.title("High-Risk Road Intersections in the UK")
+st.title("High-Risk Road Intersections in the UK Project")
 st.subheader("Based on 2023 Road Collision Data")
 
 st.markdown("""
