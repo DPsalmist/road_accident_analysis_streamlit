@@ -217,7 +217,7 @@ with tab5:
     st.markdown("""
     This dashboard visualizes road accident data from the UK for the year 2023, focusing on identifying high-risk intersections.
     It allows users to filter the data by various criteria such as junction type, region, accident severity, and month.
-    The goal is to provide an accessible tool for understanding accident hotspots and supporting road safety initiatives.
+    The main objective is to provide an accessible tool for understanding accident hotspots and supporting road safety initiatives.
     """)
     st.caption("Data Source: UK Road Safety Data (Department for Transport, 2023)")
     st.caption("Built with ❤️ using Streamlit, Pandas, and Plotly.")
