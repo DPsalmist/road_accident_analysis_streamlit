@@ -5,32 +5,39 @@ import plotly.express as px
 # -------------------------
 # 🚚 1. Load the Data
 # -------------------------
-DATA_URL = "datasets/dft-road-casualty-statistics-collision-2023.csv"
+DATA_URL_COLLISIONS = "datasets/dft-road-casualty-statistics-collision-2023.csv"
+DATA_URL_CASUALTIES = "datasets/dft-road-casualty-statistics-casualty-2023.csv"
+DATA_URL_VEHICLES = "datasets/dft-road-casualty-statistics-vehicle-2023.csv"
 
 @st.cache_data
 def load_data(url):
     df = pd.read_csv(url, low_memory=False)
     return df
 
-df_collision = load_data(DATA_URL)
+df_collision = load_data(DATA_URL_COLLISIONS)
+df_casualties = load_data(DATA_URL_CASUALTIES)
+df_vehicles = load_data(DATA_URL_VEHICLES)
 
 # -------------------------
-# 🧭 App Title
+# ⚙️ 2. Merge DataFrames
 # -------------------------
-st.title("High-Risk Road Intersections in the UK")
-st.subheader("Based on 2023 Road Collision Data")
+df_merged = pd.merge(df_collision, df_casualties, on='accident_index', how='inner')
+df_merged = pd.merge(df_merged, df_vehicles, on='accident_index', how='inner')
 
-st.markdown("""
-**🔍 Project Overview:**
-This interactive dashboard helps identify the **top high-risk road intersections** in the UK, based on reported accidents from the 2023 road casualty data.
-You can filter accidents by **region, junction type, severity**, and **time**.
-It’s designed to support non-technical users like city planners, safety teams, or policymakers in visualizing and prioritizing intervention zones.
-""")
-
-st.markdown("Use the filters on the left sidebar to refine results and explore data more interactively.")
+# --- Temporary: Print column names of df_merged ---
+st.write("Columns of df_merged:", df_merged.columns.tolist())
+# --- End of temporary section ---
 
 # -------------------------
-# 🎛️ 2. Sidebar Filters
+# 🧭 App Title (Initial Part - Rest of UI will be in tabs)
+# -------------------------
+st.title("UK Road Accident Analysis")
+st.subheader("Based on 2023 Data")
+
+st.markdown("Use the filters on the left sidebar to explore the data.")
+
+# -------------------------
+# 🎛️ 3. Sidebar Filters (Keep existing filters)
 # -------------------------
 st.sidebar.header("🔎 Filters")
 
@@ -65,7 +72,7 @@ selected_regions = st.sidebar.multiselect(
 )
 
 # Accident Severity Filter
-st.sidebar.markdown("### Severity")
+st.sidebar.markdown("### Severity (for initial exploration)")
 severity_map = {1: "Fatal", 2: "Serious", 3: "Slight"}
 available_severities = df_collision['accident_severity'].dropna().unique()
 selected_severities = st.sidebar.multiselect(
@@ -92,13 +99,13 @@ selected_months = st.sidebar.multiselect(
 )
 
 # -------------------------
-# 🔍 3. Apply Filters
+# 🔍 4. Apply Initial Filters (for the existing tabs)
 # -------------------------
-df_filtered = df_collision[
-    df_collision['junction_detail'].isin(selected_junctions) &
-    df_collision['local_authority_ons_district'].isin(selected_regions) &
-    df_collision['accident_severity'].isin(selected_severities) &
-    df_collision['month'].isin(selected_months)
+df_filtered = df_merged[
+    df_merged['junction_detail'].isin(selected_junctions) &
+    df_merged['local_authority_ons_district'].isin(selected_regions) &
+    df_merged['accident_severity'].isin(selected_severities) & # Use 'accident_severity' from df_collision
+    df_merged['month'].isin(selected_months)
 ].copy()
 
 df_filtered = df_filtered.dropna(subset=['latitude', 'longitude'])
@@ -109,7 +116,7 @@ df_filtered['rounded_location'] = (
 )
 
 # -------------------------
-# 📊 4. Aggregate Accident Data
+# 📊 5. Aggregate Accident Data (for existing tabs)
 # -------------------------
 intersection_accident_counts = (
     df_filtered.groupby('rounded_location')
@@ -130,14 +137,15 @@ intersection_accident_counts['marker_size'] = intersection_accident_counts['acci
 top_n = st.sidebar.slider("Number of Top Intersections to Display", 1, 100, 10)
 
 # -------------------------
-#  Tabbed Interface
+#  Tabbed Interface (Add a new tab for ML)
 # -------------------------
-tab1, tab2, tab3, tab4, tab5 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
     "📍 Map",
     "📊 Data & Stats",
     "Insights",
     "Download",
-    "About"
+    "About",
+    "🧠 Severity Prediction"
 ])
 
 with tab1:
@@ -170,7 +178,7 @@ with tab2:
 
     # 🥧 Pie Chart: Severity Breakdown
     st.markdown("### 🥧 Accident Severity Breakdown")
-    severity_distribution = df_filtered['accident_severity'].map(severity_map).value_counts().reset_index()
+    severity_distribution = df_filtered['accident_severity'].map(severity_map).value_counts().reset_index() # Use 'accident_severity' from df_collision
     severity_distribution.columns = ['Severity', 'Count']
     fig_pie = px.pie(
         severity_distribution,
@@ -216,6 +224,11 @@ with tab5:
     """)
     st.caption("Data Source: UK Road Safety Data (Department for Transport, 2023)")
     st.caption("Built with ❤️ using Streamlit, Pandas, and Plotly.")
+
+with tab6:
+    st.markdown("### 🧠 Accident Severity Prediction")
+    st.markdown("This section will allow you to input accident characteristics to predict the severity.")
+    st.markdown("We will build the prediction model and then add input fields here.")
 
 # -------------------------
 # ✅ End of App
