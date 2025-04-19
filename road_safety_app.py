@@ -246,12 +246,9 @@ with tab6:
         'accident_severity'
     ]].copy()
 
-    # --- Handle Missing Values ---
+    # --- Convert 'accident_severity' to integer type ---
+    ml_df['accident_severity'] = pd.to_numeric(ml_df['accident_severity'], errors='coerce').astype('Int64')
     ml_df_cleaned = ml_df.dropna()
-    st.subheader("Data After Handling Missing Values")
-    st.write(f"Number of rows before handling missing values: {len(ml_df)}")
-    st.write(f"Number of rows after handling missing values: {len(ml_df_cleaned)}")
-    st.dataframe(ml_df_cleaned.head())
 
     # --- Encode Categorical Features using One-Hot Encoding ---
     ml_df_encoded = pd.get_dummies(ml_df_cleaned, columns=[
