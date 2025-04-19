@@ -214,7 +214,13 @@ with tab4:
 with tab5:
     # About Section
     st.markdown("### ℹ️ About This Dashboard")
-    # ... (rest of the About tab)
+    st.markdown("""
+    This dashboard visualizes road accident data from the UK for the year 2023, focusing on identifying high-risk intersections.
+    It allows users to filter the data by various criteria such as junction type, region, accident severity, and month.
+    The goal is to provide an accessible tool for understanding accident hotspots and supporting road safety initiatives.
+    """)
+    st.caption("Data Source: UK Road Safety Data (Department for Transport, 2023)")
+    st.caption("Built with ❤️ using Streamlit, Pandas, and Plotly.")
 
 
 with tab6:
@@ -246,6 +252,14 @@ with tab6:
             st.write("Descriptive Statistics:")
             st.write(ml_df[col].describe())
         st.markdown("---")
+
+    # --- Handle Missing Values ---
+    ml_df_cleaned = ml_df.dropna()
+    st.subheader("Data after Handling Missing Values")
+    st.write(f"Number of rows before handling missing values: {len(ml_df)}")
+    st.write(f"Number of rows after handling missing values: {len(ml_df_cleaned)}")
+    st.dataframe(ml_df_cleaned.head())
+
 
 # -------------------------
 # ✅ End of App
