@@ -2,6 +2,10 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score, classification_report
+
 # -------------------------
 # 🚚 1. Load the Data
 # -------------------------
@@ -137,21 +141,33 @@ top_n = st.sidebar.slider("Number of Top Intersections to Display", 1, 100, 10)
 #  Tabbed Interface (Add a new tab for ML)
 # -------------------------
 tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+     "About",
     "📍 Map",
     "📊 Data & Stats",
     "Insights",
     "Download",
-    "About",
-    "🧠 Severity Prediction"
+    "🧠 Accident Severity Prediction"
 ])
 
 with tab1:
+    # About Section
+    st.markdown("### ℹ️ About This Dashboard")
+    st.markdown("""
+    This dashboard visualizes road accident data from the UK for the year 2023, focusing on identifying high-risk intersections.
+    It allows users to filter the data by various criteria such as junction type, region, accident severity, and month.
+    The main objective is to provide an accessible tool for understanding accident hotspots and supporting road safety initiatives.
+    """)
+    st.caption("Data Source: UK Road Safety Data (Department for Transport, 2023)")
+    st.caption("Built with ❤️ using Streamlit, Pandas, and Plotly.")
+
+
+with tab2:    
     # 🗺️ Map Display (Dynamic Top N)
     st.markdown("### 🗺️ Map of Top High-Risk Intersections")
     map_data = intersection_accident_counts[['latitude', 'longitude']].head(top_n)
     st.map(map_data)
 
-with tab2:
+with tab3:
     # 📋 Data Table Display
     st.markdown("### 🚦 Top Intersections with Highest Accident Frequency")
     display_df = intersection_accident_counts[['rounded_location', 'latitude', 'longitude', 'accident_frequency']].head(top_n)
@@ -186,7 +202,7 @@ with tab2:
     )
     st.plotly_chart(fig_pie, use_container_width=True)
 
-with tab3:
+with tab4:
     # 🧠 Key Observations
     st.markdown("### 🧠 Insights & Observations")
     if not display_df.empty:
@@ -197,7 +213,7 @@ with tab3:
     """)
     st.markdown(f"- 🧾 Filter applied: **{len(df_filtered)}** accidents matched your criteria.")
 
-with tab4:
+with tab5:
     # 💾 Export Options
     st.markdown("### 📤 Download Top Intersections Data")
     if not display_df.empty:
@@ -211,21 +227,7 @@ with tab4:
     else:
         st.warning("No top intersections to download based on the current filters.")
 
-with tab5:
-    # About Section
-    st.markdown("### ℹ️ About This Dashboard")
-    st.markdown("""
-    This dashboard visualizes road accident data from the UK for the year 2023, focusing on identifying high-risk intersections.
-    It allows users to filter the data by various criteria such as junction type, region, accident severity, and month.
-    The main objective is to provide an accessible tool for understanding accident hotspots and supporting road safety initiatives.
-    """)
-    st.caption("Data Source: UK Road Safety Data (Department for Transport, 2023)")
-    st.caption("Built with ❤️ using Streamlit, Pandas, and Plotly.")
 
-
-from sklearn.model_selection import train_test_split
-from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import accuracy_score, classification_report
 
 with tab6:
     st.markdown("### 🧠 Accident Severity Prediction")
@@ -264,6 +266,9 @@ with tab6:
 
     # --- Train a Logistic Regression Model ---
     model = LogisticRegression(solver='liblinear', multi_class='auto', random_state=42, max_iter=1000)
+    # --- Train a Logistic Regression Model ---
+    model = LogisticRegression(solver='liblinear', multi_class='auto', random_state=42, max_iter=1000, class_weight='balanced')
+ 
     model.fit(X_train, y_train)
 
     # --- Make Predictions on the Test Set ---
