@@ -314,10 +314,13 @@ with tab6:
     # --- Split Data into Training and Testing Sets ---
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
+    # --- Train a Random Forest Classifier Model ---
+    model = RandomForestClassifier(n_estimators=100, random_state=42, class_weight='balanced')
+    model.fit(X_train, y_train)
 
     # --- Train a Random Forest Classifier Model ---
-    model = RandomForestClassifier(n_estimators=100, max_depth=10, random_state=42, class_weight='balanced')
-    model.fit(X_train, y_train)
+    # model = RandomForestClassifier(n_estimators=100, max_depth=10, random_state=42, class_weight='balanced')
+    # model.fit(X_train, y_train)
 
     # --- Make Predictions on the Test Set ---
     y_pred = model.predict(X_test)
