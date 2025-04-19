@@ -8,7 +8,7 @@ from streamlit_folium import st_folium
 @st.cache_data
 
 def load_data():
-    df = pd.read_csv("accident_data.csv")
+    df = pd.read_csv("datasets/dft-road-casualty-statistics-collision-2023.csv")
     df['Date'] = pd.to_datetime(df['Date'])
     df['Hour'] = pd.to_datetime(df['Time'], format='%H:%M').dt.hour
     return df
