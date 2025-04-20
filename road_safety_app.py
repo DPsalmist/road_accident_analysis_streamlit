@@ -261,6 +261,11 @@ with tab6:
     ml_df['accident_severity'] = pd.to_numeric(ml_df['accident_severity'], errors='coerce').astype('Int64')
     ml_df_cleaned = ml_df.dropna()
 
+    st.subheader("Categorical Feature Cardinality (Before Encoding)")
+    for col in ['vehicle_type', 'road_surface_conditions', 'junction_detail', 'light_conditions', 'weather_conditions']:
+        num_unique = ml_df_cleaned[col].nunique()
+        st.write(f"Column '{col}' has {num_unique} unique values.")
+
     # --- Encode Categorical Features using One-Hot Encoding ---
     # Consider limiting cardinality here if needed
     for col in ['vehicle_type', 'road_surface_conditions', 'junction_detail', 'light_conditions', 'weather_conditions']:
