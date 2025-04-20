@@ -1,10 +1,11 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import plotly.figure_factory as ff
 
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score, classification_report
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 
 # -------------------------
 # 🚚 1. Load the Data
@@ -240,8 +241,8 @@ with tab5:
     else:
         st.warning("No top intersections to download based on the current filters.")
 
-
-with tab6:
+# function for tab 6
+def accident_severity_prediction_tab(df_merged):
     st.markdown("### 🧠 Accident Severity Prediction")
     st.markdown("This section will allow you to input accident characteristics to predict the severity.")
 
@@ -262,13 +263,15 @@ with tab6:
     ml_df_cleaned = ml_df.dropna()
 
     st.subheader("Categorical Feature Cardinality (Before Encoding)")
-    for col in ['vehicle_type', 'road_surface_conditions', 'junction_detail', 'light_conditions', 'weather_conditions']:
+    for col in ['vehicle_type', 'road_surface_conditions', 'junction_detail', 'light_conditions',
+                'weather_conditions']:
         num_unique = ml_df_cleaned[col].nunique()
         st.write(f"Column '{col}' has {num_unique} unique values.")
 
     # --- Encode Categorical Features using One-Hot Encoding ---
     # Consider limiting cardinality here if needed
-    for col in ['vehicle_type', 'road_surface_conditions', 'junction_detail', 'light_conditions', 'weather_conditions']:
+    for col in ['vehicle_type', 'road_surface_conditions', 'junction_detail', 'light_conditions',
+                'weather_conditions']:
         num_unique = ml_df_cleaned[col].nunique()
         if num_unique > 50:  # Example threshold - adjust as needed
             top_n = ml_df_cleaned[col].value_counts().nlargest(49).index.tolist()
@@ -295,7 +298,7 @@ with tab6:
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
 
     # --- Train a Random Forest Classifier Model ---
-    model = RandomForestClassifier(n_estimators=20, random_state=42, class_weight='balanced') # Reduced n_estimators
+    model = RandomForestClassifier(n_estimators=20, random_state=42, class_weight='balanced')  # Reduced n_estimators
     model.fit(X_train, y_train)
 
     # --- Make Predictions on the Test Set ---
@@ -308,7 +311,129 @@ with tab6:
     st.text("Classification Report:")
     st.text(classification_report(y_test, y_pred))
 
+    # --- Confusion Matrix ---
+    st.subheader("Confusion Matrix")
+    cm = confusion_matrix(y_test, y_pred)
+    cm_labels = ['Slight', 'Serious', 'Fatal']  # Order based on your severity mapping (3, 2, 1) or (1,2,3)
+    fig_cm = ff.create_annotated_heatmap(cm, x=cm_labels, y=cm_labels, colorscale='Blues')
+    fig_cm.update_layout(
+        xaxis_title='Predicted Severity',
+        yaxis_title='Actual Severity',
+        xaxis=dict(side='bottom'),
+        yaxis=dict(autorange='reversed'),  # Reverse y-axis for better readability
+    )
+    st.plotly_chart(fig_cm, use_container_width=True)
+
     st.markdown("---")
+
+    # --- Prediction Input Form ---
+    st.subheader("Predict Accident Severity")
+    st.markdown("Enter the characteristics of the accident to predict its severity.")
+
+    # Create input fields based on one-hot encoded columns
+    input_data = {}
+    for col in X_train.columns:
+        if col == 'age_of_driver':
+            input_data[col] = st.number_input("Age of Driver", min_value=16, max_value=100, value=30)
+        elif col == 'speed_limit':
+            input_data[col] = st.number_input("Speed Limit", min_value=20, max_value=70, value=30, step=10)
+        else:  # Categorical features
+            # Extract the actual category name from the one-hot encoded column name
+            category_name = col.replace("ml_df_encoded_", "").replace("_", " ").title()
+            input_data[col] = st.selectbox(category_name, X_train[col].unique())
+
+    if st.button("Predict Severity"):
+        input_df = pd.DataFrame([input_data])
+
+        # Add missing columns to input_df and fill with 0
+        for col in X_train.columns:
+            if col not in input_df.columns:
+                input_df[col] = 0
+
+        # Ensure the input DataFrame has the same column order as the training data
+        input_df = input_df[X_train.columns]
+
+        # Make prediction
+        prediction = model.predict(input_df)
+        severity_map = {1: "Fatal", 2: "Serious", 3: "Slight"}  # Assuming this mapping
+        predicted_severity = severity_map.get(prediction[0], "Unknown")
+
+        st.write(f"Predicted Accident Severity: **{predicted_severity}**")
+
+    st.markdown("---")
+
+
+with tab6:
+    accident_severity_prediction_tab(df_merged)
+
+# with tab6:
+#     st.markdown("### 🧠 Accident Severity Prediction")
+#     st.markdown("This section will allow you to input accident characteristics to predict the severity.")
+
+#     # --- Select features and target variable ---
+#     ml_df = df_merged[[
+#         'vehicle_type',
+#         'age_of_driver',
+#         'road_surface_conditions',
+#         'junction_detail',
+#         'light_conditions',
+#         'weather_conditions',
+#         'speed_limit',
+#         'accident_severity'
+#     ]].copy()
+
+#     # --- Convert 'accident_severity' to integer type ---
+#     ml_df['accident_severity'] = pd.to_numeric(ml_df['accident_severity'], errors='coerce').astype('Int64')
+#     ml_df_cleaned = ml_df.dropna()
+
+#     st.subheader("Categorical Feature Cardinality (Before Encoding)")
+#     for col in ['vehicle_type', 'road_surface_conditions', 'junction_detail', 'light_conditions', 'weather_conditions']:
+#         num_unique = ml_df_cleaned[col].nunique()
+#         st.write(f"Column '{col}' has {num_unique} unique values.")
+
+#     # --- Encode Categorical Features using One-Hot Encoding ---
+#     # Consider limiting cardinality here if needed
+#     for col in ['vehicle_type', 'road_surface_conditions', 'junction_detail', 'light_conditions', 'weather_conditions']:
+#         num_unique = ml_df_cleaned[col].nunique()
+#         if num_unique > 50:  # Example threshold - adjust as needed
+#             top_n = ml_df_cleaned[col].value_counts().nlargest(49).index.tolist()
+#             ml_df_cleaned[col] = ml_df_cleaned[col].apply(lambda x: x if x in top_n else 'Other')
+#             st.write(f"Reduced cardinality of '{col}' to top 50 categories (including 'Other').")
+
+#     ml_df_encoded = pd.get_dummies(ml_df_cleaned, columns=[
+#         'vehicle_type',
+#         'road_surface_conditions',
+#         'junction_detail',
+#         'light_conditions',
+#         'weather_conditions'
+#     ])
+#     st.subheader("Data After One-Hot Encoding")
+#     st.write(f"Number of columns before encoding: {len(ml_df_cleaned.columns)}")
+#     st.write(f"Number of columns after encoding: {len(ml_df_encoded.columns)}")
+#     st.dataframe(ml_df_encoded.head())
+
+#     # --- Prepare Features (X) and Target (y) ---
+#     X = ml_df_encoded.drop('accident_severity', axis=1)
+#     y = ml_df_encoded['accident_severity'].astype(int)
+
+#     # --- Split Data into Training and Testing Sets ---
+#     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
+
+#     # --- Train a Random Forest Classifier Model ---
+#     model = RandomForestClassifier(n_estimators=20, random_state=42, class_weight='balanced') # Reduced n_estimators
+#     model.fit(X_train, y_train)
+
+#     # --- Make Predictions on the Test Set ---
+#     y_pred = model.predict(X_test)
+
+#     # --- Evaluate the Model ---
+#     st.subheader("Model Evaluation - Random Forest Model")
+#     accuracy = accuracy_score(y_test, y_pred)
+#     st.write(f"Accuracy: {accuracy:.2f}")
+#     st.text("Classification Report:")
+#     st.text(classification_report(y_test, y_pred))
+
+#     st.markdown("---")
     #st.markdown("Next, we will integrate this model to take user inputs for prediction.")
 
 
