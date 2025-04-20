@@ -3,9 +3,7 @@ import pandas as pd
 import plotly.express as px
 
 from sklearn.model_selection import train_test_split
-from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
-from xgboost import XGBClassifier
 from sklearn.metrics import accuracy_score, classification_report
 
 # -------------------------
@@ -18,17 +16,30 @@ DATA_URL_VEHICLES = "datasets/dft-road-casualty-statistics-vehicle-2023.csv"
 @st.cache_data
 def load_data(url):
     df = pd.read_csv(url, low_memory=False)
+    st.write(f"Memory usage after loading {url}: {df.memory_usage(deep=True).sum() / (1024 ** 2):.2f} MB")
     return df
 
 df_collision = load_data(DATA_URL_COLLISIONS)
 df_casualties = load_data(DATA_URL_CASUALTIES)
 df_vehicles = load_data(DATA_URL_VEHICLES)
 
+# Optimize data types (example - adjust based on your df.info() output)
+for df in [df_collision, df_casualties, df_vehicles]:
+    for col in df.select_dtypes(include=['object']).columns:
+        try:
+            num_unique = df[col].nunique()
+            total_rows = len(df)
+            if num_unique / total_rows < 0.5:  # Heuristic for potential category
+                df[col] = df[col].astype('category')
+        except Exception as e:
+            st.write(f"Could not optimize type for column {col}: {e}")
+
 # -------------------------
 # ⚙️ 2. Merge DataFrames
 # -------------------------
 df_merged = pd.merge(df_collision, df_casualties, on='accident_index', how='inner')
 df_merged = pd.merge(df_merged, df_vehicles, on='accident_index', how='inner')
+st.write(f"Memory usage after merging: {df_merged.memory_usage(deep=True).sum() / (1024 ** 2):.2f} MB")
 
 # -------------------------
 # 🧭 App Title (Initial Part - Rest of UI will be in tabs)
@@ -163,7 +174,7 @@ with tab1:
     st.caption("Built with ❤️ using Streamlit, Pandas, and Plotly.")
 
 
-with tab2:    
+with tab2:
     # 🗺️ Map Display (Dynamic Top N)
     st.markdown("### 🗺️ Map of Top High-Risk Intersections")
     map_data = intersection_accident_counts[['latitude', 'longitude']].head(top_n)
@@ -251,6 +262,14 @@ with tab6:
     ml_df_cleaned = ml_df.dropna()
 
     # --- Encode Categorical Features using One-Hot Encoding ---
+    # Consider limiting cardinality here if needed
+    for col in ['vehicle_type', 'road_surface_conditions', 'junction_detail', 'light_conditions', 'weather_conditions']:
+        num_unique = ml_df_cleaned[col].nunique()
+        if num_unique > 50:  # Example threshold - adjust as needed
+            top_n = ml_df_cleaned[col].value_counts().nlargest(49).index.tolist()
+            ml_df_cleaned[col] = ml_df_cleaned[col].apply(lambda x: x if x in top_n else 'Other')
+            st.write(f"Reduced cardinality of '{col}' to top 50 categories (including 'Other').")
+
     ml_df_encoded = pd.get_dummies(ml_df_cleaned, columns=[
         'vehicle_type',
         'road_surface_conditions',
@@ -271,7 +290,7 @@ with tab6:
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
 
     # --- Train a Random Forest Classifier Model ---
-    model = RandomForestClassifier(n_estimators=100, random_state=42, class_weight='balanced')
+    model = RandomForestClassifier(n_estimators=50, random_state=42, class_weight='balanced') # Reduced n_estimators
     model.fit(X_train, y_train)
 
     # --- Make Predictions on the Test Set ---
