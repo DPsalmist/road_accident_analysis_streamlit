@@ -16,7 +16,7 @@ DATA_URL_VEHICLES = "datasets/dft-road-casualty-statistics-vehicle-2023.csv"
 @st.cache_data
 def load_data(url):
     df = pd.read_csv(url, low_memory=False)
-    st.write(f"Memory usage after loading {url}: {df.memory_usage(deep=True).sum() / (1024 ** 2):.2f} MB")
+    #st.write(f"Memory usage after loading {url}: {df.memory_usage(deep=True).sum() / (1024 ** 2):.2f} MB")
     return df
 
 df_collision = load_data(DATA_URL_COLLISIONS)
@@ -39,7 +39,7 @@ for df in [df_collision, df_casualties, df_vehicles]:
 # -------------------------
 df_merged = pd.merge(df_collision, df_casualties, on='accident_index', how='inner')
 df_merged = pd.merge(df_merged, df_vehicles, on='accident_index', how='inner')
-st.write(f"Memory usage after merging: {df_merged.memory_usage(deep=True).sum() / (1024 ** 2):.2f} MB")
+#st.write(f"Memory usage after merging: {df_merged.memory_usage(deep=True).sum() / (1024 ** 2):.2f} MB")
 
 # -------------------------
 # 🧭 App Title (Initial Part - Rest of UI will be in tabs)
@@ -309,7 +309,7 @@ with tab6:
     st.text(classification_report(y_test, y_pred))
 
     st.markdown("---")
-    st.markdown("Next, we will integrate this model to take user inputs for prediction.")
+    #st.markdown("Next, we will integrate this model to take user inputs for prediction.")
 
 
 # -------------------------
