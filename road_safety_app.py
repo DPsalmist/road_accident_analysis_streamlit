@@ -200,11 +200,15 @@ with tab2:
         st.markdown("### 🗺️ Map of Top High-Risk Intersections")
         if not intersection_accident_counts.empty:
             map_data = intersection_accident_counts[['latitude', 'longitude', 'accident_frequency']].head(top_n)
+
+            # Using marker size to indicate frequency
             max_freq_map = intersection_accident_counts['accident_frequency'].max()
             scale_factor_map = 10
             map_data['marker_size'] = map_data['accident_frequency'] / max_freq_map * scale_factor_map
-            st.map(map_data, size='marker_size', color='accident_frequency', color_scale='plasma')
-            st.caption("Higher intensity (size/color) indicates higher accident frequency.")
+
+            st.map(map_data, size='marker_size')
+
+            st.caption("Larger marker size indicates higher accident frequency.")
         else:
             st.warning("No data to display on the map based on current filters.")
     except Exception as e:
