@@ -295,7 +295,7 @@ with tab6:
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
 
     # --- Train a Random Forest Classifier Model ---
-    model = RandomForestClassifier(n_estimators=50, random_state=42, class_weight='balanced') # Reduced n_estimators
+    model = RandomForestClassifier(n_estimators=20, random_state=42, class_weight='balanced') # Reduced n_estimators
     model.fit(X_train, y_train)
 
     # --- Make Predictions on the Test Set ---
