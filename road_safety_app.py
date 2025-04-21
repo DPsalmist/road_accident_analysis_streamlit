@@ -14,16 +14,16 @@ def load_data(url):
         df = pd.read_csv(url, low_memory=False)
         return df
     except Exception as e:
-        st.error(f"Errors loading data from {url}: {e}")
+        st.error(f"Error loading data from {url}: {e}")
         return None
 
-def accident_severity_prediction_tab(df_merged):
+def accident_severity_prediction_tab(df_merged_with_max_casualty_severity):
     st.markdown("### 🧠 Accident Severity Prediction")
-    st.markdown("This section displays the model evaluation for accident severity prediction.")
+    st.markdown("This section displays the model evaluation for accident severity prediction using aggregated features.")
 
     try:
-        if df_merged is not None:
-            ml_df = df_merged[[
+        if df_merged_with_max_casualty_severity is not None:
+            ml_df = df_merged_with_max_casualty_severity[[
                 'vehicle_type',
                 'age_of_driver',
                 'road_surface_conditions',
@@ -31,10 +31,11 @@ def accident_severity_prediction_tab(df_merged):
                 'light_conditions',
                 'weather_conditions',
                 'speed_limit',
+                'max_casualty_severity', # Using the new feature
                 'accident_severity'
             ]].copy()
             ml_df['accident_severity'] = pd.to_numeric(ml_df['accident_severity'], errors='coerce').astype('Int64')
-            ml_df_cleaned = ml_df.dropna().copy() # Use .copy() to avoid SettingWithCopyWarning
+            ml_df_cleaned = ml_df.dropna().copy()
 
             # Merge 99 and -1 in 'junction_detail' to 'Unknown/Missing'
             ml_df_cleaned['junction_detail'] = ml_df_cleaned['junction_detail'].replace([99, -1], 'Unknown/Missing')
@@ -53,7 +54,7 @@ def accident_severity_prediction_tab(df_merged):
             model.fit(X_train, y_train)
             y_pred = model.predict(X_test)
 
-            st.subheader("Model Evaluation - Random Forest Model")
+            st.subheader("Model Evaluation - Random Forest Model (with Max Casualty Severity)")
             accuracy = accuracy_score(y_test, y_pred)
             st.write(f"Accuracy: {accuracy:.2f}")
             st.text("Classification Report:")
@@ -72,7 +73,7 @@ def accident_severity_prediction_tab(df_merged):
         st.error(f"Error occurred during model evaluation: {e}")
         st.info("Please check the logs for more details.")
 
-# Load Data with error handling
+# Load Data
 DATA_URL_COLLISIONS = "datasets/dft-road-casualty-statistics-collision-2023.csv"
 DATA_URL_CASUALTIES = "datasets/dft-road-casualty-statistics-casualty-2023.csv"
 DATA_URL_VEHICLES = "datasets/dft-road-casualty-statistics-vehicle-2023.csv"
@@ -80,7 +81,7 @@ df_collision = load_data(DATA_URL_COLLISIONS)
 df_casualties = load_data(DATA_URL_CASUALTIES)
 df_vehicles = load_data(DATA_URL_VEHICLES)
 
-# Merge DataFrames with error handling
+# Merge DataFrames
 df_merged = None
 if df_collision is not None and df_casualties is not None and df_vehicles is not None:
     try:
@@ -89,15 +90,36 @@ if df_collision is not None and df_casualties is not None and df_vehicles is not
     except Exception as e:
         st.error(f"Error merging DataFrames: {e}")
 
+# --- Create 'max_casualty_severity' feature ---
+df_max_casualty_severity = None
+if df_casualties is not None:
+    try:
+        casualty_severity_mapping = {1: 1, 2: 2, 3: 3} # Map to consistent scale
+        df_casualties['casualty_severity_mapped'] = df_casualties['casualty_severity'].map(casualty_severity_mapping)
+        df_max_casualty_severity = df_casualties.groupby('accident_index')['casualty_severity_mapped'].max().reset_index()
+        df_max_casualty_severity.rename(columns={'casualty_severity_mapped': 'max_casualty_severity'}, inplace=True)
+    except Exception as e:
+        st.error(f"Error creating 'max_casualty_severity' feature: {e}")
+
+# --- Merge 'max_casualty_severity' into df_merged ---
+if df_merged is not None and df_max_casualty_severity is not None:
+    try:
+        df_merged = pd.merge(df_merged, df_max_casualty_severity, on='accident_index', how='left')
+        # Fill NaN values in 'max_casualty_severity' with a default (e.g., 3 for Slight, assuming no casualty implies least severe)
+        df_merged['max_casualty_severity'].fillna(3, inplace=True)
+        df_merged['max_casualty_severity'] = df_merged['max_casualty_severity'].astype(int)
+    except Exception as e:
+        st.error(f"Error merging 'max_casualty_severity' into merged DataFrame: {e}")
+
 # -------------------------
-# 🧭 App Title
+# 🧭 App Title and Sidebar
 # -------------------------
 st.title("UK Road Accident Analysis")
 st.subheader("Based on 2023 Data")
 st.markdown("Use the filters on the left sidebar to explore the data.")
 
 # -------------------------
-# 🎛️ Sidebar Filters with error handling for invalid junction selections
+# 🎛️ Sidebar Filters
 # -------------------------
 st.sidebar.header("🔎 Filters")
 selected_junctions = []
@@ -126,7 +148,7 @@ if df_collision is not None and df_merged is not None:
 
         df_merged['date'] = pd.to_datetime(df_merged['date'], errors='coerce')
         df_merged['month'] = df_merged['date'].dt.month
-        months_map = {1: "January", 2: "February", 3: "March", 4: "April", 5: "May", 6: "June", 7: "July", 8: "August", 9: "September", 10: "October", 11: "November", 12: "December"}
+        months_map = {1: "January", 2: "February", 3: "March", 4: "April", 5: "May", 6: "June", 7: "July", 8: "August", 9: "September", 10: "October", 11: November", 12: "December"}
         available_months = sorted(df_merged['month'].dropna().unique())
         selected_months = st.sidebar.multiselect("Select Month(s)", options=available_months, default=available_months, format_func=lambda x: months_map.get(x, f"Month {x}"))
     except Exception as e:
@@ -200,14 +222,10 @@ with tab2:
         st.markdown("### 🗺️ Map of Top High-Risk Intersections")
         if not intersection_accident_counts.empty:
             map_data = intersection_accident_counts[['latitude', 'longitude', 'accident_frequency']].head(top_n)
-
-            # Using marker size to indicate frequency
             max_freq_map = intersection_accident_counts['accident_frequency'].max()
             scale_factor_map = 10
             map_data['marker_size'] = map_data['accident_frequency'] / max_freq_map * scale_factor_map
-
             st.map(map_data, size='marker_size')
-
             st.caption("Larger marker size indicates higher accident frequency.")
         else:
             st.warning("No data to display on the map based on current filters.")
