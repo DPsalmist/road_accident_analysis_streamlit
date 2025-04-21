@@ -17,13 +17,13 @@ def load_data(url):
         st.error(f"Error loading data from {url}: {e}")
         return None
 
-def accident_severity_prediction_tab(df_merged_with_max_casualty_severity):
+def accident_severity_prediction_tab(df_merged_with_casualty_info): # Changed parameter name for clarity
     st.markdown("### 🧠 Accident Severity Prediction")
     st.markdown("This section displays the model evaluation for accident severity prediction using aggregated features.")
 
     try:
-        if df_merged_with_max_casualty_severity is not None:
-            ml_df = df_merged_with_max_casualty_severity[[
+        if df_merged_with_casualty_info is not None:
+            ml_df = df_merged_with_casualty_info[[
                 'vehicle_type',
                 'age_of_driver',
                 'road_surface_conditions',
@@ -31,7 +31,8 @@ def accident_severity_prediction_tab(df_merged_with_max_casualty_severity):
                 'light_conditions',
                 'weather_conditions',
                 'speed_limit',
-                'max_casualty_severity', # Using the new feature
+                'max_casualty_severity',  # Using the new feature
+                'number_of_serious_casualties', # Using the new feature
                 'accident_severity'
             ]].copy()
             ml_df['accident_severity'] = pd.to_numeric(ml_df['accident_severity'], errors='coerce').astype('Int64')
@@ -54,7 +55,7 @@ def accident_severity_prediction_tab(df_merged_with_max_casualty_severity):
             model.fit(X_train, y_train)
             y_pred = model.predict(X_test)
 
-            st.subheader("Model Evaluation - Random Forest Model (with Max Casualty Severity)")
+            st.subheader("Model Evaluation - Random Forest Model (with Max Casualty Severity and Number of Serious Casualties)") #added info to subheader
             accuracy = accuracy_score(y_test, y_pred)
             st.write(f"Accuracy: {accuracy:.2f}")
             st.text("Classification Report:")
@@ -90,26 +91,40 @@ if df_collision is not None and df_casualties is not None and df_vehicles is not
     except Exception as e:
         st.error(f"Error merging DataFrames: {e}")
 
-# --- Create 'max_casualty_severity' feature ---
-df_max_casualty_severity = None
+# --- Create 'max_casualty_severity' and 'number_of_serious_casualties' features ---
+df_casualty_aggregation = None
 if df_casualties is not None:
     try:
-        casualty_severity_mapping = {1: 1, 2: 2, 3: 3} # Map to consistent scale
+        casualty_severity_mapping = {1: 1, 2: 2, 3: 3}  # Map to consistent scale
         df_casualties['casualty_severity_mapped'] = df_casualties['casualty_severity'].map(casualty_severity_mapping)
+
+        # Calculate max_casualty_severity
         df_max_casualty_severity = df_casualties.groupby('accident_index')['casualty_severity_mapped'].max().reset_index()
         df_max_casualty_severity.rename(columns={'casualty_severity_mapped': 'max_casualty_severity'}, inplace=True)
-    except Exception as e:
-        st.error(f"Error creating 'max_casualty_severity' feature: {e}")
 
-# --- Merge 'max_casualty_severity' into df_merged ---
-if df_merged is not None and df_max_casualty_severity is not None:
-    try:
-        df_merged = pd.merge(df_merged, df_max_casualty_severity, on='accident_index', how='left')
-        # Fill NaN values in 'max_casualty_severity' with a default (e.g., 3 for Slight, assuming no casualty implies least severe)
-        df_merged['max_casualty_severity'].fillna(3, inplace=True)
-        df_merged['max_casualty_severity'] = df_merged['max_casualty_severity'].astype(int)
+        # Calculate number_of_serious_casualties
+        df_serious_casualties = df_casualties[df_casualties['casualty_severity_mapped'] == 2].groupby('accident_index').size().reset_index(name='number_of_serious_casualties')
+
+        # Merge the two aggregations
+        df_casualty_aggregation = pd.merge(df_max_casualty_severity, df_serious_casualties, on='accident_index', how='outer').fillna(0) #important to use outer join
+        df_casualty_aggregation['number_of_serious_casualties'] = df_casualty_aggregation['number_of_serious_casualties'].astype(int)
+
     except Exception as e:
-        st.error(f"Error merging 'max_casualty_severity' into merged DataFrame: {e}")
+        st.error(f"Error creating casualty aggregation features: {e}")
+
+# --- Merge casualty aggregation into df_merged ---
+df_merged_with_casualty_info = None # Added to make it clear
+if df_merged is not None and df_casualty_aggregation is not None:
+    try:
+        df_merged_with_casualty_info = pd.merge(df_merged, df_casualty_aggregation, on='accident_index', how='left')
+        # Fill NaN values 
+        df_merged_with_casualty_info['max_casualty_severity'].fillna(3, inplace=True)
+        df_merged_with_casualty_info['max_casualty_severity'] = df_merged_with_casualty_info['max_casualty_severity'].astype(int)
+        df_merged_with_casualty_info['number_of_serious_casualties'].fillna(0, inplace=True)
+        df_merged_with_casualty_info['number_of_serious_casualties'] = df_merged_with_casualty_info['number_of_serious_casualties'].astype(int)
+
+    except Exception as e:
+        st.error(f"Error merging casualty aggregation into merged DataFrame: {e}")
 
 # -------------------------
 # 🧭 App Title and Sidebar
@@ -127,7 +142,7 @@ selected_regions = []
 selected_severities = []
 selected_months = []
 
-if df_collision is not None and df_merged is not None:
+if df_collision is not None and df_merged_with_casualty_info is not None: #changed df_merged
     try:
         junction_type_labels = {0: "Not at junction", 1: "Roundabout", 2: "Mini-roundabout", 3: "T or staggered junction", 5: "Slip road", 6: "Crossroads", 7: "More than 4 arms (not roundabout)", 8: "Private drive or entrance", 9: "Other junction"}
         available_junctions_raw = sorted(df_collision['junction_detail'].dropna().unique())
@@ -146,10 +161,10 @@ if df_collision is not None and df_merged is not None:
         available_severities = df_collision['accident_severity'].dropna().unique()
         selected_severities = st.sidebar.multiselect("Select Severity Level", options=available_severities, default=available_severities, format_func=lambda x: severity_map.get(x, str(x)))
 
-        df_merged['date'] = pd.to_datetime(df_merged['date'], errors='coerce')
-        df_merged['month'] = df_merged['date'].dt.month
-        months_map = {1: "January", 2: "February", 3: "March", 4: "April", 5: "May", 6: "June", 7: "July", 8: "August", 9: "September", 10: "October", 11: November", 12: "December"}
-        available_months = sorted(df_merged['month'].dropna().unique())
+        df_merged_with_casualty_info['date'] = pd.to_datetime(df_merged_with_casualty_info['date'], errors='coerce') #changed df_merged
+        df_merged_with_casualty_info['month'] = df_merged_with_casualty_info['date'].dt.month #changed df_merged
+        months_map = {1: "January", 2: "February", 3: "March", 4: "April", 5: "May", 6: "June", 7: "July", 8: "August", 9: "September", 10: "October", 11: "November", 12: "December"}
+        available_months = sorted(df_merged_with_casualty_info['month'].dropna().unique()) #changed df_merged
         selected_months = st.sidebar.multiselect("Select Month(s)", options=available_months, default=available_months, format_func=lambda x: months_map.get(x, f"Month {x}"))
     except Exception as e:
         st.sidebar.error(f"Error creating sidebar filters: {e}")
@@ -158,14 +173,14 @@ if df_collision is not None and df_merged is not None:
 # 🔍 Apply Initial Filters
 # -------------------------
 df_filtered = None
-if df_merged is not None:
+if df_merged_with_casualty_info is not None: #changed df_merged
     try:
         valid_selected_junctions = [j for j in selected_junctions if j in available_junctions]
-        df_filtered = df_merged[
-            df_merged['junction_detail'].isin(valid_selected_junctions) &
-            df_merged['local_authority_ons_district'].isin(selected_regions) &
-            df_merged['accident_severity'].isin(selected_severities) &
-            df_merged['month'].isin(selected_months)
+        df_filtered = df_merged_with_casualty_info[ #changed df_merged
+            df_merged_with_casualty_info['junction_detail'].isin(valid_selected_junctions) &
+            df_merged_with_casualty_info['local_authority_ons_district'].isin(selected_regions) &
+            df_merged_with_casualty_info['accident_severity'].isin(selected_severities) &
+            df_merged_with_casualty_info['month'].isin(selected_months)
         ].copy()
         df_filtered = df_filtered.dropna(subset=['latitude', 'longitude'])
         if not df_filtered.empty:
@@ -286,7 +301,7 @@ with tab5:
         st.error(f"Error in Download tab: {e}")
 
 with tab6:
-    accident_severity_prediction_tab(df_merged)
+    accident_severity_prediction_tab(df_merged_with_casualty_info) #changed df_merged
 
 # -------------------------
 # ✅ End of App
