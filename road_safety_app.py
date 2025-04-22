@@ -1,4 +1,4 @@
-import sklear
+import sklearn
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.neural_network import MLPClassifier
