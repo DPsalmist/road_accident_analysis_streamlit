@@ -9,6 +9,7 @@ warnings.filterwarnings("ignore")
 
 
 import streamlit as st
+st.write(f"Scikit-learn version in Streamlit: {sklearn.__version__}")
 import pandas as pd
 import plotly.express as px
 import plotly.figure_factory as ff
@@ -322,6 +323,9 @@ with tab3:
 with tab4:
     try:
         st.markdown("### 🧠 Insights & Observations")
+        st.write("Columns in intersection_accident_counts:")
+        st.write(intersection_accident_counts.columns)
+        
         if not intersection_accident_counts.empty:
             most_accident_prone = intersection_accident_counts.iloc[0]
             st.markdown(f"- 🚨 The intersection at **{most_accident_prone['Location (Lat, Lon)']}** recorded the **highest number of accidents**: **{most_accident_prone['Accident Count']}**.")
