@@ -64,8 +64,8 @@ def accident_severity_prediction_tab(df_merged_with_casualty_info):
 
 
             # Load the saved models
-            rf_model = joblib.load('best_rf_model.joblib')  # Updated filename
-            nn_model = joblib.load('best_nn_model.joblib')  # Updated filename
+            rf_model = joblib.load('best_rf_model2.joblib')  # Updated filename
+            nn_model = joblib.load('best_nn_model2.joblib')  # Updated filename
 
             # Make predictions
             rf_y_pred = rf_model.predict(X_test)

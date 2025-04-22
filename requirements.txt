@@ -4,8 +4,8 @@ plotly
 dataframe-image
 folium
 streamlit-folium
-scikit-learn
 xgboost
 joblib
 numpy
+scikit-learn==1.6.1
 
