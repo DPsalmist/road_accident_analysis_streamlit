@@ -5,6 +5,8 @@ import plotly.figure_factory as ff  # For confusion matrix
 import joblib  # For loading saved models
 import numpy as np # added np
 
+import sklearn
+print(sklearn.__version__)
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.neural_network import MLPClassifier
