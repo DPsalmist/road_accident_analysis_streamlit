@@ -9,7 +9,7 @@ warnings.filterwarnings("ignore")
 
 
 import streamlit as st
-st.write(f"Scikit-learn version in Streamlit: {sklearn.__version__}")
+#st.write(f"Scikit-learn version in Streamlit: {sklearn.__version__}")
 import pandas as pd
 import plotly.express as px
 import plotly.figure_factory as ff
@@ -64,8 +64,8 @@ def accident_severity_prediction_tab(df_merged_with_casualty_info):
 
 
             # Load the saved models
-            rf_model = joblib.load('best_rf_model_161.joblib')  # Updated filename
-            nn_model = joblib.load('best_nn_model_161.joblib')  # Updated filename
+            rf_model = joblib.load('best_rf_model.joblib')  # Updated filename
+            nn_model = joblib.load('best_nn_model.joblib')  # Updated filename
 
             # Make predictions
             rf_y_pred = rf_model.predict(X_test)
