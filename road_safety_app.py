@@ -2,13 +2,10 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.figure_factory as ff  # For confusion matrix
+import joblib  # For loading saved models
+import numpy as np # added np
 
-from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
-
-
-@st.cache_data
+# @st.cache_data # Removed cache_data
 def load_data(url):
     try:
         df = pd.read_csv(url, low_memory=False)
@@ -17,9 +14,9 @@ def load_data(url):
         st.error(f"Error loading data from {url}: {e}")
         return None
 
-def accident_severity_prediction_tab(df_merged_with_casualty_info): # Changed parameter name for clarity
+def accident_severity_prediction_tab(df_merged_with_casualty_info):
     st.markdown("### 🧠 Accident Severity Prediction")
-    st.markdown("This section displays the model evaluation for accident severity prediction using aggregated features.")
+    st.markdown("This section displays the model evaluation for accident severity prediction using Random Forest and Neural Network models.")
 
     try:
         if df_merged_with_casualty_info is not None:
@@ -51,28 +48,51 @@ def accident_severity_prediction_tab(df_merged_with_casualty_info): # Changed pa
             X = ml_df_encoded.drop('accident_severity', axis=1)
             y = ml_df_encoded['accident_severity'].astype(int)
             X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
-            model = RandomForestClassifier(n_estimators=20, random_state=42, class_weight='balanced')
-            model.fit(X_train, y_train)
-            y_pred = model.predict(X_test)
 
-            st.subheader("Model Evaluation - Random Forest Model (with Max Casualty Severity and Number of Serious Casualties)") #added info to subheader
-            accuracy = accuracy_score(y_test, y_pred)
-            st.write(f"Accuracy: {accuracy:.2f}")
+
+            # Load the saved models
+            rf_model = joblib.load('best_rf_model.joblib')
+            nn_model = joblib.load('best_nn_model.joblib')
+
+            # Make predictions
+            rf_y_pred = rf_model.predict(X_test)
+            nn_y_pred = nn_model.predict(X_test)
+
+            # Evaluate models (using the same metrics from the training script)
+            rf_accuracy = accuracy_score(y_test, rf_y_pred)
+            nn_accuracy = accuracy_score(y_test, nn_y_pred)
+
+            st.subheader("Model Evaluation - Random Forest")
+            st.write(f"Accuracy: {rf_accuracy:.2f}")
             st.text("Classification Report:")
-            st.text(classification_report(y_test, y_pred))
+            st.text(classification_report(y_test, rf_y_pred))
 
-            st.subheader("Confusion Matrix")
-            cm = confusion_matrix(y_test, y_pred)
+            st.subheader("Confusion Matrix - Random Forest")
+            cm_rf = confusion_matrix(y_test, rf_y_pred)
             cm_labels = ['Fatal', 'Serious', 'Slight']
-            fig_cm = ff.create_annotated_heatmap(cm, x=cm_labels, y=cm_labels, colorscale='Blues')
-            fig_cm.update_layout(xaxis_title='Predicted Severity', yaxis_title='Actual Severity', xaxis=dict(side='bottom'), yaxis=dict(autorange='reversed'))
-            st.plotly_chart(fig_cm, use_container_width=True)
+            fig_cm_rf = ff.create_annotated_heatmap(cm_rf, x=cm_labels, y=cm_labels, colorscale='Blues')
+            fig_cm_rf.update_layout(xaxis_title='Predicted Severity', yaxis_title='Actual Severity', xaxis=dict(side='bottom'), yaxis=dict(autorange='reversed'))
+            st.plotly_chart(fig_cm_rf, use_container_width=True)
+
+            st.subheader("Model Evaluation - Neural Network")
+            st.write(f"Accuracy: {nn_accuracy:.2f}")
+            st.text("Classification Report:")
+            st.text(classification_report(y_test, nn_y_pred))
+
+            st.subheader("Confusion Matrix - Neural Network")
+            cm_nn = confusion_matrix(y_test, nn_y_pred)
+            fig_cm_nn = ff.create_annotated_heatmap(cm_nn, x=cm_labels, y=cm_labels, colorscale='Blues')
+            fig_cm_nn.update_layout(xaxis_title='Predicted Severity', yaxis_title='Actual Severity', xaxis=dict(side='bottom'), yaxis=dict(autorange='reversed'))
+            st.plotly_chart(fig_cm_nn, use_container_width=True)
+
         else:
             st.warning("Merged data is not available, cannot perform accident severity prediction.")
         st.markdown("---")
     except Exception as e:
         st.error(f"Error occurred during model evaluation: {e}")
         st.info("Please check the logs for more details.")
+
+
 
 # Load Data
 DATA_URL_COLLISIONS = "datasets/dft-road-casualty-statistics-collision-2023.csv"
@@ -117,7 +137,7 @@ df_merged_with_casualty_info = None # Added to make it clear
 if df_merged is not None and df_casualty_aggregation is not None:
     try:
         df_merged_with_casualty_info = pd.merge(df_merged, df_casualty_aggregation, on='accident_index', how='left')
-        # Fill NaN values 
+        # Fill NaN values
         df_merged_with_casualty_info['max_casualty_severity'].fillna(3, inplace=True)
         df_merged_with_casualty_info['max_casualty_severity'] = df_merged_with_casualty_info['max_casualty_severity'].astype(int)
         df_merged_with_casualty_info['number_of_serious_casualties'].fillna(0, inplace=True)
@@ -286,6 +306,23 @@ with tab4:
             st.markdown(f"- 🧾 Filter applied: **{len(df_filtered)}** accidents matched your criteria.")
         elif df_filtered is None:
             st.warning("Data filtering failed, cannot show filter details.")
+
+        st.markdown("### Model Performance Insights")
+        st.markdown("Based on the evaluation of the Random Forest and Neural Network models for accident severity prediction:")
+
+        st.markdown("**Random Forest Model:**")
+        st.markdown("- Achieved an accuracy of 0.98.")
+        st.markdown("- Precision, recall, and F1-score for severity level 1 (Fatal) were lower compared to levels 2 and 3, indicating some difficulty in accurately predicting fatal accidents.  The model had a harder time predicting the 'Fatal' accidents.")
+        st.markdown("- Confusion matrix shows some misclassification between 'Fatal' and 'Serious' categories.")
+
+        st.markdown("**Neural Network (MLPClassifier) Model:**")
+        st.markdown("- Achieved an accuracy of 0.99.")
+        st.markdown("- Precision for severity level 1 (Fatal) was 0.95, a significant improvement over the RF model. The NN model is better at predicting fatal accidents.")
+        st.markdown("- Overall, the Neural Network model demonstrates slightly better performance across all severity levels compared to the Random Forest model.")
+
+        st.markdown("**Conclusion:**")
+        st.markdown("Both models perform well, but the Neural Network model shows a slight improvement, particularly in predicting fatal accidents.  This suggests that the Neural Network may be better at capturing the complex relationships between the input features and accident severity in this dataset.")
+        st.markdown("It's important to note that the models were trained on a dataset with a class imbalance (more 'Slight' accidents), which could affect performance, especially for the less frequent 'Fatal' category.  Further investigation and potentially different modeling techniques may be warranted.")
     except Exception as e:
         st.error(f"Error in Insights tab: {e}")
 
@@ -301,7 +338,7 @@ with tab5:
         st.error(f"Error in Download tab: {e}")
 
 with tab6:
-    accident_severity_prediction_tab(df_merged_with_casualty_info) #changed df_merged
+    accident_severity_prediction_tab(df_merged_with_casualty_info)
 
 # -------------------------
 # ✅ End of App

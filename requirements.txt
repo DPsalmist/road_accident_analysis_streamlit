@@ -6,4 +6,6 @@ folium
 streamlit-folium
 scikit-learn
 xgboost
+joblib
+numpy
 
