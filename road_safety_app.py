@@ -17,6 +17,7 @@ import plotly.figure_factory as ff
 import numpy as np
 import sklearn  # Import sklearn to check version
 
+
 # @st.cache_data # Removed cache_data
 def load_data(url):
     try:
@@ -30,9 +31,6 @@ def accident_severity_prediction_tab(df_merged_with_casualty_info):
     st.markdown("### 🧠 Accident Severity Prediction")
     st.markdown("This section displays the model evaluation for accident severity prediction using Random Forest and Neural Network models.")
 
-    # Define cm_labels *outside* the if block
-    cm_labels = ['Fatal', 'Serious', 'Slight']
-
     try:
         if df_merged_with_casualty_info is not None:
             ml_df = df_merged_with_casualty_info[[
@@ -43,8 +41,8 @@ def accident_severity_prediction_tab(df_merged_with_casualty_info):
                 'light_conditions',
                 'weather_conditions',
                 'speed_limit',
-                'max_casualty_severity',
-                'number_of_serious_casualties',
+                'max_casualty_severity',  # Using the new feature
+                'number_of_serious_casualties', # Using the new feature
                 'accident_severity'
             ]].copy()
             ml_df['accident_severity'] = pd.to_numeric(ml_df['accident_severity'], errors='coerce').astype('Int64')
@@ -66,52 +64,39 @@ def accident_severity_prediction_tab(df_merged_with_casualty_info):
 
 
             # Load the saved models
-            try:
-                rf_model = joblib.load('best_rf_model.joblib')
-            except Exception as e:
-                st.error(f"Error loading Random Forest model: {e}")
-                rf_model = None  # Set to None to prevent further errors
+            rf_model = joblib.load('best_rf_model_161.joblib')  # Updated filename
+            nn_model = joblib.load('best_nn_model_161.joblib')  # Updated filename
 
-            try:
-                nn_model = joblib.load('best_nn_model.joblib')
-            except Exception as e:
-                st.error(f"Error loading Neural Network model: {e}")
-                nn_model = None # Set to None to prevent further errors
+            # Make predictions
+            rf_y_pred = rf_model.predict(X_test)
+            nn_y_pred = nn_model.predict(X_test)
 
-            # Make predictions and evaluate
-            if rf_model is not None: # Only proceed if model loaded
-                rf_y_pred = rf_model.predict(X_test)
-                rf_accuracy = accuracy_score(y_test, rf_y_pred)
+            # Evaluate models (using the same metrics from the training script)
+            rf_accuracy = accuracy_score(y_test, rf_y_pred)
+            nn_accuracy = accuracy_score(y_test, nn_y_pred)
 
-                st.subheader("Model Evaluation - Random Forest")
-                st.write(f"Accuracy: {rf_accuracy:.2f}")
-                st.text("Classification Report:")
-                st.text(classification_report(y_test, rf_y_pred))
+            st.subheader("Model Evaluation - Random Forest")
+            st.write(f"Accuracy: {rf_accuracy:.2f}")
+            st.text("Classification Report:")
+            st.text(classification_report(y_test, rf_y_pred))
 
-                st.subheader("Confusion Matrix - Random Forest")
-                cm_rf = confusion_matrix(y_test, rf_y_pred)
-                fig_cm_rf = ff.create_annotated_heatmap(cm_rf, x=cm_labels, y=cm_labels, colorscale='Blues')
-                fig_cm_rf.update_layout(xaxis_title='Predicted Severity', yaxis_title='Actual Severity', xaxis=dict(side='bottom'), yaxis=dict(autorange='reversed'))
-                st.plotly_chart(fig_cm_rf, use_container_width=True)
-            else:
-                st.warning("Random Forest predictions not available due to loading error.")
+            st.subheader("Confusion Matrix - Random Forest")
+            cm_rf = confusion_matrix(y_test, rf_y_pred)
+            cm_labels = ['Fatal', 'Serious', 'Slight']
+            fig_cm_rf = ff.create_annotated_heatmap(cm_rf, x=cm_labels, y=cm_labels, colorscale='Blues')
+            fig_cm_rf.update_layout(xaxis_title='Predicted Severity', yaxis_title='Actual Severity', xaxis=dict(side='bottom'), yaxis=dict(autorange='reversed'))
+            st.plotly_chart(fig_cm_rf, use_container_width=True)
 
-            if nn_model is not None: # Only proceed if model loaded
-                nn_y_pred = nn_model.predict(X_test)
-                nn_accuracy = accuracy_score(y_test, nn_y_pred)
+            st.subheader("Model Evaluation - Neural Network")
+            st.write(f"Accuracy: {nn_accuracy:.2f}")
+            st.text("Classification Report:")
+            st.text(classification_report(y_test, nn_y_pred))
 
-                st.subheader("Model Evaluation - Neural Network")
-                st.write(f"Accuracy: {nn_accuracy:.2f}")
-                st.text("Classification Report:")
-                st.text(classification_report(y_test, nn_y_pred))
-
-                st.subheader("Confusion Matrix - Neural Network")
-                cm_nn = confusion_matrix(y_test, nn_y_pred)
-                fig_cm_nn = ff.create_annotated_heatmap(cm_nn, x=cm_labels, y=cm_labels, colorscale='Blues')
-                fig_cm_nn.update_layout(xaxis_title='Predicted Severity', yaxis_title='Actual Severity', xaxis=dict(side='bottom'), yaxis=dict(autorange='reversed'))
-                st.plotly_chart(fig_cm_nn, use_container_width=True)
-            else:
-                st.warning("Neural Network predictions not available due to loading error.")
+            st.subheader("Confusion Matrix - Neural Network")
+            cm_nn = confusion_matrix(y_test, nn_y_pred)
+            fig_cm_nn = ff.create_annotated_heatmap(cm_nn, x=cm_labels, y=cm_labels, colorscale='Blues')
+            fig_cm_nn.update_layout(xaxis_title='Predicted Severity', yaxis_title='Actual Severity', xaxis=dict(side='bottom'), yaxis=dict(autorange='reversed'))
+            st.plotly_chart(fig_cm_nn, use_container_width=True)
 
         else:
             st.warning("Merged data is not available, cannot perform accident severity prediction.")
@@ -199,22 +184,21 @@ if df_collision is not None and df_merged_with_casualty_info is not None: #chang
             "Select Junction Types",
             options=available_junctions,
             default=[1, 2, 3, 6, 7, 8, 9],
-            format_func=lambda x: junction_type_labels.get(x, str(x)),
-            key="junction_types"  # Add a unique key
+            format_func=lambda x: junction_type_labels.get(x, str(x))
         )
 
         available_regions = sorted(df_collision['local_authority_ons_district'].dropna().unique())
-        selected_regions = st.sidebar.multiselect("Select Regions (ONS Districts)", options=available_regions, default=available_regions[:5], key="regions") # Add key
+        selected_regions = st.sidebar.multiselect("Select Regions (ONS Districts)", options=available_regions, default=available_regions[:5])
 
         severity_map = {1: "Fatal", 2: "Serious", 3: "Slight"}
         available_severities = df_collision['accident_severity'].dropna().unique()
-        selected_severities = st.sidebar.multiselect("Select Severity Level", options=available_severities, default=available_severities, format_func=lambda x: severity_map.get(x, str(x)), key="severities") # Add key
+        selected_severities = st.sidebar.multiselect("Select Severity Level", options=available_severities, default=available_severities, format_func=lambda x: severity_map.get(x, str(x)))
 
         df_merged_with_casualty_info['date'] = pd.to_datetime(df_merged_with_casualty_info['date'], errors='coerce') #changed df_merged
         df_merged_with_casualty_info['month'] = df_merged_with_casualty_info['date'].dt.month #changed df_merged
         months_map = {1: "January", 2: "February", 3: "March", 4: "April", 5: "May", 6: "June", 7: "July", 8: "August", 9: "September", 10: "October", 11: "November", 12: "December"}
         available_months = sorted(df_merged_with_casualty_info['month'].dropna().unique()) #changed df_merged
-        selected_months = st.sidebar.multiselect("Select Month(s)", options=available_months, default=available_months, format_func=lambda x: months_map.get(x, f"Month {x}"), key="months") # Add key
+        selected_months = st.sidebar.multiselect("Select Month(s)", options=available_months, default=available_months, format_func=lambda x: months_map.get(x, f"Month {x}"))
     except Exception as e:
         st.sidebar.error(f"Error creating sidebar filters: {e}")
 
@@ -323,12 +307,9 @@ with tab3:
 with tab4:
     try:
         st.markdown("### 🧠 Insights & Observations")
-        st.write("Columns in intersection_accident_counts:")
-        st.write(intersection_accident_counts.columns)
-        
         if not intersection_accident_counts.empty:
             most_accident_prone = intersection_accident_counts.iloc[0]
-            st.markdown(f"- 🚨 The intersection at **{most_accident_prone['Location (Lat, Lon)']}** recorded the **highest number of accidents**: **{most_accident_prone['Accident Count']}**.")
+            st.markdown(f"- 🚨 The intersection at **{most_accident_prone['rounded_location']}** recorded the **highest number of accidents**: **{most_accident_prone['accident_frequency']}**.")
             st.markdown(f"- 📌 The top {top_n} intersections collectively account for **{intersection_accident_counts['accident_frequency'].head(top_n).sum()}** reported accidents in the selected filters.")
         elif df_filtered is not None:
             st.info("No high-risk intersections to highlight based on the current filters.")
@@ -378,4 +359,4 @@ with tab6:
 st.markdown("---")
 st.caption("Built with ❤️ using Streamlit and UK Road Safety Data (DfT, 2023)")
 
-#####
+####
