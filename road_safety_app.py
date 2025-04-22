@@ -5,6 +5,14 @@ import plotly.figure_factory as ff  # For confusion matrix
 import joblib  # For loading saved models
 import numpy as np # added np
 
+from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.neural_network import MLPClassifier
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+import joblib  # For saving models
+import warnings
+warnings.filterwarnings("ignore")
+
 # @st.cache_data # Removed cache_data
 def load_data(url):
     try:
